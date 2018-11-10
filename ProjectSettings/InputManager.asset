@@ -246,11 +246,27 @@ InputManager:
     axis: 1
     joyNum: 0
   - serializedVersion: 3
+    m_Name: Dodge
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: joystick button 12
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 1000
+    dead: 0.001
+    sensitivity: 1000
+    snap: 0
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
+  - serializedVersion: 3
     m_Name: Fire1
     descriptiveName: 
     descriptiveNegativeName: 
     negativeButton: 
-    positiveButton: joystick button 0
+    positiveButton: joystick button 13
     altNegativeButton: 
     altPositiveButton: 
     gravity: 1000
@@ -266,7 +282,7 @@ InputManager:
     descriptiveName: 
     descriptiveNegativeName: 
     negativeButton: 
-    positiveButton: joystick button 1
+    positiveButton: joystick button 14
     altNegativeButton: 
     altPositiveButton: 
     gravity: 1000
@@ -282,7 +298,7 @@ InputManager:
     descriptiveName: 
     descriptiveNegativeName: 
     negativeButton: 
-    positiveButton: joystick button 2
+    positiveButton: joystick button 16
     altNegativeButton: 
     altPositiveButton: 
     gravity: 1000
@@ -291,14 +307,14 @@ InputManager:
     snap: 0
     invert: 0
     type: 0
-    axis: 0
+    axis: 4
     joyNum: 0
   - serializedVersion: 3
     m_Name: Jump
     descriptiveName: 
     descriptiveNegativeName: 
     negativeButton: 
-    positiveButton: joystick button 3
+    positiveButton: joystick button 17
     altNegativeButton: 
     altPositiveButton: 
     gravity: 1000
@@ -307,7 +323,7 @@ InputManager:
     snap: 0
     invert: 0
     type: 0
-    axis: 0
+    axis: 5
     joyNum: 0
   - serializedVersion: 3
     m_Name: Submit

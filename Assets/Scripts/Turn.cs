@@ -8,7 +8,7 @@ public class Turn : MonoBehaviour {
     private Vector3 m_CamForward;             // The current forward direction of the camera
     private Vector3 m_Move;
 	public float turnSpeed =1;
-	public float rotSpeed;
+	public float rotSpeed = 1;
 	public float rotOffset = -90;
 
 	// Use this for initialization
@@ -33,25 +33,28 @@ public class Turn : MonoBehaviour {
         float rv = CrossPlatformInputManager.GetAxis("RightStickVerticalP1");
 
 	
-
-		if(Mathf.Abs(rh) >= Mathf.Epsilon && Mathf.Abs(rv) >= Mathf.Epsilon)
-		{
-			Vector3 targetDir = new Vector3();
-            targetDir = rv * m_CamForward + rh * m_Cam.right;
-
-
-            Quaternion offSet = new Quaternion(0, rotOffset, 0, 0);
+  //      //Cam Relative
+		//if(Mathf.Abs(rh) >= Mathf.Epsilon && Mathf.Abs(rv) >= Mathf.Epsilon)
+		//{
+		//	Vector3 targetDir = new Vector3();
+  //          targetDir = rv * m_CamForward + rh * m_Cam.right;
 
 
-            var targetDirection = new Vector3(rh, 0f, rv);
-            targetDirection = Camera.main.transform.TransformDirection(targetDirection);
-            targetDirection.y = 0.0f;
-            Quaternion targetRotation = Quaternion.LookRotation(targetDirection, Vector3.up);
-            Quaternion newRotation = Quaternion.Lerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+  //          Quaternion offSet = new Quaternion(0, rotOffset, 0, 0);
 
-            transform.rotation = newRotation;	
-		}
-        
+
+  //          var targetDirection = new Vector3(rh, 0f, rv);
+  //          targetDirection = Camera.main.transform.TransformDirection(targetDirection);
+  //          targetDirection.y = 0.0f;
+  //          Quaternion targetRotation = Quaternion.LookRotation(targetDirection, Vector3.up);
+  //          Quaternion newRotation = Quaternion.Lerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+            
+  //          transform.rotation = newRotation;	
+		//}
+
+		//Left-Right Spin
+		//transform.Rotate(Vector3.up, rh * -rotSpeed);
+		transform.eulerAngles = new Vector3(0, transform.eulerAngles.y + (rh * -rotSpeed), 0);
 
 
 
