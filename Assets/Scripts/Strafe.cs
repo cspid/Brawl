@@ -99,8 +99,7 @@ public class Strafe : MonoBehaviour {
             transform.rotation = Quaternion.LookRotation(newDir);
             torso.rotation = Quaternion.LookRotation(offsetDir);
             
-            //if (transform.forward == torso.forward) catchUp = false;
-			if (Vector3.Angle(torso.forward, transform.forward) < 4) catchUp = false;
+			if (Vector3.Angle(torso.forward, transform.forward) < 10) catchUp = false;
         }
 
 
