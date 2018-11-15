@@ -27,6 +27,8 @@ public class dodge : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+
+        
 		float h = CrossPlatformInputManager.GetAxis("HorizontalP1");
         float v = CrossPlatformInputManager.GetAxis("VerticalP1");
 
