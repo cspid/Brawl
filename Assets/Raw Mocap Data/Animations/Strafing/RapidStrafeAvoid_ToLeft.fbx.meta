@@ -161,7 +161,9 @@ ModelImporter:
     400152: Spine
     400154: TongueBack
     400156: TongueTip
-    7400000: RapidStrafeAvoid_ToLeft
+    7400000: strafeLEft
+    7400002: _61_62__a_U1_M_P_RapidStrafeAvoid_ToLeft__Fb_p90_No_0_1
+    7400004: strafeRight
     9500000: //RootNode
     2186277476908879412: ImportLogs
   externalObjects: {}
@@ -198,7 +200,35 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: RapidStrafeAvoid_ToLeft
+      name: strafeLEft
+      takeName: _61_62__a_U1_M_P_RapidStrafeAvoid_ToLeft__Fb_p90_No_0_1
+      firstFrame: 145
+      lastFrame: 164
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: _61_62__a_U1_M_P_RapidStrafeAvoid_ToLeft__Fb_p90_No_0_1
       takeName: _61_62__a_U1_M_P_RapidStrafeAvoid_ToLeft__Fb_p90_No_0_1
       firstFrame: 30
       lastFrame: 593
@@ -209,6 +239,34 @@ ModelImporter:
       loop: 0
       hasAdditiveReferencePose: 0
       loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: strafeRight
+      takeName: _61_62__a_U1_M_P_RapidStrafeAvoid_ToLeft__Fb_p90_No_0_1
+      firstFrame: 224
+      lastFrame: 240
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
