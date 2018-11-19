@@ -23,10 +23,18 @@ public class Strafe : MonoBehaviour {
 	StrafeAnimController strafeAnimController;
 	float strafeAnimSpeed;
 	float strafeAnimStartSpeed;
+    public float h;
+    public float v;
 
-
-
-	private void Start()
+    public void setH(float val)
+    {
+        h = val;
+    }
+    public void setV(float val)
+    {
+        v = val;
+    }
+    private void Start()
     {
 		strafeAnimController = GetComponent<StrafeAnimController>();
 		strafeAnimStartSpeed = strafeAnimController.animSpeed;
@@ -46,15 +54,16 @@ public class Strafe : MonoBehaviour {
 
        
     }
-
+   
 
 	// Update is called once per frame
 	void Update()
 	{
 
 		//Leg Movement
-		float h = CrossPlatformInputManager.GetAxis("HorizontalP1");
-		float v = CrossPlatformInputManager.GetAxis("VerticalP1");
+		// h = CrossPlatformInputManager.GetAxis("HorizontalP1");
+		// v = CrossPlatformInputManager.GetAxis("VerticalP1");
+        // set by a blueprint 
 
 		// calculate move direction to pass to character
 		if (m_Cam != null)

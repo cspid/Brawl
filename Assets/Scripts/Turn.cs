@@ -10,9 +10,18 @@ public class Turn : MonoBehaviour {
 	public float turnSpeed =1;
 	public float rotSpeed = 1;
 	public float rotOffset = -90;
-
-	// Use this for initialization
-	void Start () {
+    float rh;
+    float rv;
+    public void setH(float val)
+    {
+        rh = val;
+    }
+    public void setV(float val)
+    {
+        rv = val;
+    }
+    // Use this for initialization
+    void Start () {
 		if (Camera.main != null)
         {
             m_Cam = Camera.main.transform;
@@ -29,8 +38,9 @@ public class Turn : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		float rh = CrossPlatformInputManager.GetAxis("RightStickHorizontalP1");
-        float rv = CrossPlatformInputManager.GetAxis("RightStickVerticalP1");
+		//float rh = CrossPlatformInputManager.GetAxis("RightStickHorizontalP1");
+        // float rv = CrossPlatformInputManager.GetAxis("RightStickVerticalP1");
+        // set by a blueprint 
 
 	
   //      //Cam Relative
