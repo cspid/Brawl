@@ -14,7 +14,10 @@ namespace ParadoxNotion.Design
 
     /// Utility class to provide documentation for various types where available with the assembly
     public static class DocsByReflection {
+
         
+        //PARADOX NOTION ADDITION
+        ///----------------------------------------------------------------------------------------------
         private static Dictionary<MemberInfo, XmlElement> cachedElements = new Dictionary<MemberInfo, XmlElement>();
         private static Dictionary<MemberInfo, string> cachedSummaries = new Dictionary<MemberInfo, string>();
 
@@ -81,8 +84,9 @@ namespace ParadoxNotion.Design
             }
             return null;
         }
-
         ///----------------------------------------------------------------------------------------------
+        ///END PARADOX NOTION ADDITION
+
 
         /// <summary>
         /// Provides the documentation comments for a specific method

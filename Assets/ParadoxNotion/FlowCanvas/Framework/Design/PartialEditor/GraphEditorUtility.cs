@@ -84,6 +84,13 @@ namespace NodeCanvas.Editor {
 			return graph.GetType().Name.GetCapitals();
 		}
 
+		///Returns the selected nodes if any or all graph nodes
+		public static Node[] GetSelectedOrAll(this Graph graph){
+			if (activeNode != null){ return new Node[]{activeNode}; }
+			if (activeElements.Count > 0){ return activeElements.OfType<Node>().ToArray(); }
+			return graph.allNodes.ToArray();
+		}
+
 		///Make a deep copy of provided graph asset along with it's sub-graphs.
 		public static Graph DeepCopy(Graph root){
 			if (root == null){

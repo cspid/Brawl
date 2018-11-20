@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace NodeCanvas.Framework{
+namespace NodeCanvas.Framework.Internal{
 
 	///A special BBParameter for the task agent used in Task.
 	///This should be a nested class of Task, but WSA has a bug in doing so.
 	[System.Serializable]
-	public class TaskAgent : BBParameter<UnityEngine.Object>{
+	public class TaskAgentParameter : BBParameter<UnityEngine.Object>{
 
 		new public UnityEngine.Object value{
 			get

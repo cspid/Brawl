@@ -56,8 +56,9 @@ namespace ParadoxNotion.Design{
 			}
 
 			var spoofTypes = defaultSpoofTypes;
-			spoofTypes.AddRange(targetTypes.Where(t => t.IsValueType && !spoofTypes.Contains(t)) );
-			var types = ReflectionTools.GetAllTypes(true).Where(t => t.IsDefined(typeof(SpoofAOTAttribute), true) ).ToList();
+			spoofTypes.AddRange( targetTypes.Where(t => t.IsValueType && !spoofTypes.Contains(t)) );
+			spoofTypes = spoofTypes.Distinct().ToList();
+			var types = ReflectionTools.GetAllTypes(true).Where(t => t.IsDefined(typeof(SpoofAOTAttribute), true) ).Distinct().ToList();
 
 			var nTypes = 0;
 			var nMethods = 0;

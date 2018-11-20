@@ -5,6 +5,7 @@ using NodeCanvas.Editor;
 
 using System.Collections.Generic;
 using System.Linq;
+using ParadoxNotion;
 using ParadoxNotion.Design;
 using UnityEngine;
 using ParadoxNotion.Serialization;
@@ -45,7 +46,7 @@ namespace NodeCanvas.Framework{
 					}
 
 					if (action.isActive || (initialActiveActions != null && initialActiveActions.Contains(action)) ){
-						var prefix = action.isPaused? "<b>||</b> " : action.isRunning? "► " : "";
+						var prefix = action.isPaused? "<b>||</b> " : action.isRunning? "► " : "▪";
 						finalText += prefix + action.summaryInfo + (i == actions.Count -1? "" : "\n");
 					}
 				}

@@ -4,6 +4,7 @@ using NodeCanvas.Editor;
 #endif
 
 using System.Collections.Generic;
+using ParadoxNotion;
 using ParadoxNotion.Design;
 using ParadoxNotion.Serialization;
 using UnityEngine;
@@ -46,7 +47,8 @@ namespace NodeCanvas.Framework{
 					}
 
 					if (conditions[i].isActive || (initialActiveConditions != null && initialActiveConditions.Contains(conditions[i])) ){
-						finalText += conditions[i].summaryInfo + (i == conditions.Count -1? "" : "\n" );
+						var prefix = "▪";
+						finalText += prefix + conditions[i].summaryInfo + (i == conditions.Count -1? "" : "\n" );
 					}
 				}
 				return finalText;

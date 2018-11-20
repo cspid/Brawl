@@ -66,7 +66,7 @@ namespace ParadoxNotion.Design {
 
 			///Use drawers
 			var drawerAttributes = attributes != null? attributes.OfType<DrawerAttribute>().OrderBy(a => a.priority).ToArray() : null;
-			var objectDrawer = DrawerFactory.GetObjectDrawer(t);
+			var objectDrawer = PropertyDrawerFactory.GetObjectDrawer(t);
 			return objectDrawer.DrawGUI(content, value, field, context, drawerAttributes);
 		}
 
@@ -99,7 +99,7 @@ namespace ParadoxNotion.Design {
 		    }
 
 			if (t == typeof(Type)){
-				return Popup<Type>(content, (Type)value, UserTypePrefs.GetPreferedTypesList(true) );
+				return Popup<Type>(content, (Type)value, TypePrefs.GetPreferedTypesList(true) );
 			}
 
             if (t == typeof(string)){

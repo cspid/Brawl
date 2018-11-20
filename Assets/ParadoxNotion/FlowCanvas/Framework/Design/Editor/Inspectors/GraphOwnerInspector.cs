@@ -11,28 +11,22 @@ namespace NodeCanvas.Editor{
 
 
     [InitializeOnLoad]
-    public class HierarchyIcons {
+    static class HierarchyIcons {
 
-        static HierarchyIcons() {
+		static HierarchyIcons() {
             EditorApplication.hierarchyWindowItemOnGUI += ShowIcon;
         }
 
         static void ShowIcon(int ID, Rect r) {
-			if (!NCPrefs.showHierarchyIcons){
+			if (!Prefs.showHierarchyIcons){
 				return;
 			}
             var go = EditorUtility.InstanceIDToObject(ID) as GameObject;
             if (go == null) return;
             var owner = go.GetComponent<GraphOwner>();
             if (owner == null) return;
-            var prefix = string.Empty;
-            var content = new GUIContent( prefix + "♟");
-            var size = GUI.skin.GetStyle("label").CalcSize(content);
-            r.x = r.xMax - size.x;
-            r.width = size.x;
-            GUI.color = Color.white;
-            GUI.Label(r, content);
-            GUI.color = Color.white;
+            r.xMin = r.xMax - 16;
+			GUI.DrawTexture(r, StyleSheet.canvasIcon);
         }
     }
 

@@ -7,7 +7,7 @@ namespace NodeCanvas.Framework.Internal{
 	[System.Serializable]
 	public class GraphSerializationData {
 
-		public const float FRAMEWORK_VERSION = 2.85f;
+		public const float FRAMEWORK_VERSION = 2.90f;
 
 		public float version;
 		public System.Type type;
@@ -18,7 +18,6 @@ namespace NodeCanvas.Framework.Internal{
 		public float zoomFactor                 = 1f;
 		public List<Node> nodes                 = new List<Node>();
 		public List<Connection> connections     = new List<Connection>();
-		public Node primeNode                   = null;
 		public List<CanvasGroup> canvasGroups   = null;
 		public BlackboardSource localBlackboard = null;
 		public object derivedData               = null;
@@ -48,7 +47,6 @@ namespace NodeCanvas.Framework.Internal{
 			}
 
 			this.connections = structConnections;
-			this.primeNode   = graph.primeNode;
 
 			//serialize derived data
 			this.derivedData = graph.OnDerivedDataSerialization();

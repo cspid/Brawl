@@ -2,17 +2,17 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using ParadoxNotion;
 using ParadoxNotion.Design;
 using ParadoxNotion.Serialization;
 using ParadoxNotion.Services;
+using NodeCanvas.Framework.Internal;
 using UnityEngine;
 
 
-namespace NodeCanvas.Framework{
+namespace NodeCanvas.Framework {
 
-	///*RECOVERY PROCESSOR IS INSTEAD APPLIED RESPECTIVELY IN ACTIONTASK - CONDITIONTASK*///
+    ///*RECOVERY PROCESSOR IS INSTEAD APPLIED RESPECTIVELY IN ACTIONTASK - CONDITIONTASK*///
 
     [Serializable] [SpoofAOT]
 	///The base class for all Actions and Conditions. You dont actually use or derive this class. Instead derive from ActionTask and ConditionTask
@@ -23,7 +23,7 @@ namespace NodeCanvas.Framework{
 		///Designates that the task requires Unity eventMessages to be forwarded from the agent and to this task
 		[AttributeUsage(AttributeTargets.Class)]
 		protected class EventReceiverAttribute : Attribute{
-			public string[] eventMessages;
+			readonly public string[] eventMessages;
 			public EventReceiverAttribute(params string[] args){
 				this.eventMessages = args;
 			}
@@ -39,7 +39,7 @@ namespace NodeCanvas.Framework{
 		[SerializeField]
 		private bool _isDisabled;
 		[SerializeField]
-		private TaskAgent overrideAgent = null;
+		private TaskAgentParameter overrideAgent = null;
 		
 		[NonSerialized]
 		private IBlackboard _blackboard;
@@ -180,12 +180,20 @@ namespace NodeCanvas.Framework{
 		///You can omit this to keep the agent propagated as is or if there is no need for a specific type anyway.
 		virtual public Type agentType{ get {return null;} }
 
-
-
 		///A short summary of what the task will finaly do.
 		public string summaryInfo{
 			get
 			{
+				#if UNITY_EDITOR
+				{
+					if (!NodeCanvas.Editor.Prefs.showTaskSummary){
+						if ( !(this is ISubTasksContainer) ){
+							return string.Format("<b>{0}</b>", name);
+						}
+					}
+				}
+				#endif
+
 				if (this is ActionTask){
 					return (agentIsOverride? "* " : "") + info;
 				}
@@ -216,7 +224,7 @@ namespace NodeCanvas.Framework{
 				}
 
 				if (value == true && overrideAgent == null){
-					overrideAgent = new TaskAgent();
+					overrideAgent = new TaskAgentParameter();
 					overrideAgent.bb = blackboard;					
 				}
 			}
@@ -272,11 +280,9 @@ namespace NodeCanvas.Framework{
 		}
 
 		///Sends an event through the owner system to handle (same as calling ownerSystem.SendEvent)
-		protected void SendEvent(string eventName){	SendEvent( new EventData(eventName) ); }
-		protected void SendEvent<T>(string eventName, T value){ SendEvent(new EventData<T>(eventName, value)); }
 		protected void SendEvent(EventData eventData){
 			if (ownerSystem != null){
-				ownerSystem.SendEvent(eventData);
+				ownerSystem.SendEvent(eventData, this);
 			}
 		}
 
@@ -499,7 +505,7 @@ namespace NodeCanvas.Framework{
 			{
 				if (_icon == null){
 					var iconAtt = this.GetType().RTGetAttribute<IconAttribute>(true);
-					_icon = iconAtt != null? UserTypePrefs.GetTypeIcon(iconAtt, this) : null;
+					_icon = iconAtt != null? TypePrefs.GetTypeIcon(iconAtt, this) : null;
 					if (_icon == null){ _icon = new object(); }
 				}
 				return _icon as Texture2D;

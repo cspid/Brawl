@@ -15,15 +15,15 @@ namespace NodeCanvas.Editor{
 	    public static void ShowWindow() {
 	        var window = GetWindow(typeof(ExternalInspectorWindow)) as ExternalInspectorWindow;
 	        window.Show();
-			NCPrefs.useExternalInspector = true;
+			Prefs.useExternalInspector = true;
 	    }
 
 		void OnEnable(){
-	        titleContent = new GUIContent("NC Inspector");
+			titleContent = new GUIContent("Inspector", StyleSheet.canvasIcon);
 		}
 
 		void OnDestroy(){
-			NCPrefs.useExternalInspector = false;
+			Prefs.useExternalInspector = false;
 		}
 
 		void Update(){

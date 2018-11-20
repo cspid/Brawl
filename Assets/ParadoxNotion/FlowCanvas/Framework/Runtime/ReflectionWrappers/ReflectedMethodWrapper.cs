@@ -10,7 +10,7 @@ using UnityEngine;
 namespace NodeCanvas.Framework.Internal {
 
     ///Wraps a MethodInfo with the relevant BBParameters to be called within a Reflection based Task
-    abstract public class ReflectedWrapper{
+    abstract public class ReflectedWrapper {
 
 	    protected delegate void ActionCall();
 	    protected delegate void ActionCall<T1>(T1 a);
@@ -19,8 +19,6 @@ namespace NodeCanvas.Framework.Internal {
 	    protected delegate void ActionCall<T1, T2, T3, T4>(T1 a, T2 b, T3 c, T4 d);
 	    protected delegate void ActionCall<T1, T2, T3, T4, T5>(T1 a, T2 b, T3 c, T4 d, T5 e);
 	    protected delegate void ActionCall<T1, T2, T3, T4, T5, T6>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f);
-	    // protected delegate void ActionCall<T1, T2, T3, T4, T5, T6, T7>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f, T7 g);
-	    // protected delegate void ActionCall<T1, T2, T3, T4, T5, T6, T7, T8>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f, T7 g, T8 h);    
 
 		protected delegate TResult FunctionCall<TResult>();
 		protected delegate TResult FunctionCall<T1, TResult>(T1 a);
@@ -29,8 +27,6 @@ namespace NodeCanvas.Framework.Internal {
 		protected delegate TResult FunctionCall<T1, T2, T3, T4, TResult>(T1 a, T2 b, T3 c, T4 d);
 		protected delegate TResult FunctionCall<T1, T2, T3, T4, T5, TResult>(T1 a, T2 b, T3 c, T4 d, T5 e);
 		protected delegate TResult FunctionCall<T1, T2, T3, T4, T5, T6, TResult>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f);
-		// protected delegate TResult FunctionCall<T1, T2, T3, T4, T5, T6, T7, TResult>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f, T7 g);
-		// protected delegate TResult FunctionCall<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f, T7 g, T8 h);
 
 		//required
 		public ReflectedWrapper(){}
@@ -53,7 +49,7 @@ namespace NodeCanvas.Framework.Internal {
 
 		abstract public BBParameter[] GetVariables();
 		abstract public void Init(object instance);
-	}
+    }
 
 
 

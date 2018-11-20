@@ -114,6 +114,7 @@ namespace ParadoxNotion.Design{
 		private int hoveringIndex;
 		private bool init;
 		private float helpRectRequiredHeight = 0;
+		private EditorWindow wasFocusedWindow;
 		
 
 		///----------------------------------------------------------------------------------------------
@@ -151,7 +152,13 @@ namespace ParadoxNotion.Design{
 			if (generationThread != null){
 				generationThread.Abort();
 			}
-			generationThread = Threader.StartAction( GenerateTree, ()=>{ generationThread = null; current.editorWindow.Repaint(); } );
+			generationThread = Threader.StartAction( GenerateTree, ()=>
+			{
+				generationThread = null;
+				if (current != null){
+					current.editorWindow.Repaint();
+				}
+			});
 		}
 
 		//init
@@ -170,8 +177,15 @@ namespace ParadoxNotion.Design{
 			SetMenu(newMenu);
 		}
 
-		public override void OnOpen(){ LoadPrefs(); }
-		public override void OnClose(){	SavePrefs(); }
+		public override void OnOpen(){
+			wasFocusedWindow = EditorWindow.focusedWindow;
+			LoadPrefs();
+		}
+		public override void OnClose(){
+			SavePrefs();
+			EditorWindow.FocusWindowIfItsOpen(wasFocusedWindow != null? wasFocusedWindow.GetType() : null);
+			current = null;
+		}
 
 		//...
 		private static void LoadPrefs(){
@@ -291,6 +305,7 @@ namespace ParadoxNotion.Design{
 			///SEARCH
 			if (e.keyCode == KeyCode.DownArrow){GUIUtility.keyboardControl = 0;}
 			if (e.keyCode == KeyCode.UpArrow){GUIUtility.keyboardControl = 0;}
+			if (e.keyCode == KeyCode.Return){GUIUtility.keyboardControl = 0;}
 			GUILayout.BeginHorizontal();
 			GUI.SetNextControlName("SearchToolbar");
 			search = EditorUtils.SearchField(search);
@@ -355,17 +370,25 @@ namespace ParadoxNotion.Design{
 			var itemAdded = false;
 			string lastSearchCategory = null;
 			foreach (var childPair in currentNode.children){
+
+				var isSearch = !string.IsNullOrEmpty(search);
+
+				if (isSearch && i >= 200){
+					EditorGUILayout.HelpBox("There are more than 200 results. Please try refine your search input.", MessageType.Info);
+					break;
+				}
+
 				var node = childPair.Value;
 				var leafItem = node.item;
 				var memberInfo = leafItem != null? leafItem.userData as MemberInfo : null;
 				var isDisabled = leafItem != null && leafItem.func == null && leafItem.func2 == null;
 				var icon = leafItem != null? leafItem.content.image : Icons.folderIcon;
 				if (icon == null && memberInfo != null){
-					icon = UserTypePrefs.GetTypeIcon(memberInfo);
+					icon = TypePrefs.GetTypeIcon(memberInfo);
 				}
 
 				//when within search, show category on top
-				if (!string.IsNullOrEmpty(search)){
+				if (isSearch){
 					var searchCategory = lastSearchCategory;
 					if (memberInfo == null || memberInfo is System.Type){
 						searchCategory = node.parent.fullPath != null? node.parent.fullPath.Split(new char[]{'/'}, System.StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : null;
@@ -390,7 +413,9 @@ namespace ParadoxNotion.Design{
 				}
 
 				if (leafItem != null && leafItem.separator){
-					EditorUtils.Separator();
+					if (itemAdded){
+						EditorUtils.Separator();
+					}
 					continue;
 				}
 
@@ -479,7 +504,7 @@ namespace ParadoxNotion.Design{
 				var memberInfo = hoveringNode.item.userData as MemberInfo;
 				if (memberInfo != null && string.IsNullOrEmpty(doc)){
 					if (memberInfo is System.Type){
-						doc = UserTypePrefs.GetTypeDoc(memberInfo);
+						doc = TypePrefs.GetTypeDoc(memberInfo);
 					} else {
 						doc = DocsByReflection.GetMemberSummary(memberInfo);
 					}

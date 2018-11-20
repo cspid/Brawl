@@ -7,6 +7,7 @@ namespace ParadoxNotion.Design {
 
 	///Factory for EditorObjectWrappers
 	public static class EditorWrapperFactory{
+		
 		private static Dictionary<object, EditorObjectWrapper> cachedEditors = new Dictionary<object, EditorObjectWrapper>();
 		
 		///Returns a cached EditorObjectWrapepr of type T for target object
@@ -34,6 +35,7 @@ namespace ParadoxNotion.Design {
 			OnInit();
 		}
 
+		///Create Property and Method wrappers here
 		virtual protected void OnInit(){}
 
 		///Get a wrapped editor serialized field on target

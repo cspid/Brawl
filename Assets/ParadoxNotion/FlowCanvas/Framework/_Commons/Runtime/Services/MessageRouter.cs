@@ -15,19 +15,20 @@ namespace ParadoxNotion.Services{
 			IDragHandler, IScrollHandler, IUpdateSelectedHandler, ISelectHandler, IDeselectHandler, IMoveHandler, ISubmitHandler
 	{
 
-		///Dispatched messages are encapsulated within this data class if the target method uses a Message parameter type.
+		///Dispatched messages are encapsulated within this data class if the target method uses a MessageData parameter type.
 		public class MessageData{
 			public GameObject receiver{get; private set;}
-			public MessageData(){}
-			public MessageData(GameObject receiver){
+			public object sender{get; private set;}
+			public MessageData(GameObject receiver, object sender){
 				this.receiver = receiver;
+				this.sender   = sender;
 			}
 		}
 
-		///Dispatched messages are encapsulated within this data class if the target method uses a Message parameter type.
+		///Dispatched messages are encapsulated within this data class if the target method uses a MessageData parameter type.
 		public class MessageData<T> : MessageData{
 			public T value{get; private set;}
-			public MessageData(T value, GameObject receiver) : base(receiver){
+			public MessageData(T value, GameObject receiver, object sender) : base(receiver, sender){
 				this.value = value;
 			}
 		}
@@ -229,13 +230,6 @@ namespace ParadoxNotion.Services{
 			Dispatch("OnTransformParentChanged");
 		}
 
-		//-------------------------------------------------
-		//This is used for custom events other than the above
-		public void OnCustomEvent(EventData eventData){
-			Dispatch("OnCustomEvent", eventData);
-		}
-
-
 		///----------------------------------------------------------------------------------------------
 
 
@@ -248,7 +242,7 @@ namespace ParadoxNotion.Services{
 
 			for (var i = 0; i < messages.Length; i++){
 				
-				// var method = target.GetType().RTGetMethod(messages[i]);
+				//Remark: Declared only
 				var method = target.GetType().GetMethod(messages[i], BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
 				if (method == null){
 					Debug.LogError(string.Format("Type '{0}' does not implement a method named '{1}', for the registered event to use.", target.GetType().FriendlyName(), messages[i]));
@@ -338,9 +332,13 @@ namespace ParadoxNotion.Services{
 		}
 
 		///Call the functions assigned to the event without argument
-		public bool Dispatch(string message){ return Dispatch<object>(message, null); }
+		public bool Dispatch(string message, object sender = null){ return Dispatch<object>(message, null, sender); }
 		///Call the functions assigned to the event with argument
-		public bool Dispatch<T>(string message, T arg){
+		public bool Dispatch<T>(string message, T arg, object sender = null){
+
+			if (sender == null){
+				sender = this;
+			}
 
 			List<object> targets;
 			if (!listeners.TryGetValue(message, out targets)){
@@ -358,8 +356,8 @@ namespace ParadoxNotion.Services{
 				if (target is Delegate){
 					method = (target as Delegate).RTGetDelegateMethodInfo();
 				} else {
+					//Remark: Declared only
 					method = target.GetType().GetMethod(message, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
-					// method = target.GetType().RTGetMethod(message);
 				}
 
 				if (method == null){
@@ -377,7 +375,7 @@ namespace ParadoxNotion.Services{
 				if (parameters.Length == 1){
 					object realArg;
 					if (typeof(MessageData).RTIsAssignableFrom(parameters[0].ParameterType)){
-						realArg = new MessageData<T>(arg, this.gameObject);
+						realArg = new MessageData<T>(arg, this.gameObject, sender);
 					} else {
 						realArg = arg;
 					}

@@ -1,12 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using System;
-using ParadoxNotion;
 
-namespace NodeCanvas.Framework{
+namespace ParadoxNotion {
 
-	public static class TypeConverter {
+    ///Auto "Convenience Converters" from type to type (boxing).
+    ///This includes unconventional data conversions like for example GameObject to Vector3 (by transform.position).
+    public static class TypeConverter {
 
 		///Returns a function that can convert provided first arg value from type to type
 		public static Func<object, object> Get(Type fromType, Type toType){

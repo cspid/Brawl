@@ -137,11 +137,6 @@ namespace ParadoxNotion.Design {
 						var pickObj = list[pickedIndex];
 						list.RemoveAt(pickedIndex);
 						list.Insert(i, pickObj);
-						// var pickObj = list[pickedIndex];
-						// var dropObj = list[i];
-						// list[i] = pickObj;
-						// list[pickedIndex] = dropObj;
-						// pickedListIndex[list] = -1;
 						GUI.changed = true;
 						if (unityObject != null){ EditorUtility.SetDirty(unityObject); }
 					}

@@ -15,26 +15,33 @@ namespace ParadoxNotion{
 
 		///Convert camelCase to words.
 		public static string SplitCamelCase(this string s){
-			if (string.IsNullOrEmpty(s)){
-				return s;
-			}
+			if (string.IsNullOrEmpty(s)){ return s; }
 
 			string result;
 			if (splitCaseCache.TryGetValue(s, out result)){
 				return result;
 			}
-			if (s.StartsWith("_")){ s = s.Substring(1); }
-			result = s.Replace("_", " ");
-			result = char.ToUpper(result[0]) + result.Substring(1);
-			result = Regex.Replace(result, "(?<=[a-z])([A-Z])", " $1").Trim();
+
+			result = s;
+			var underscoreIndex = result.IndexOf('_');
+			if (underscoreIndex >= 0){
+				result = result.Substring( underscoreIndex + 1 );
+			}
+			result = Regex.Replace(result, "(?<=[a-z])([A-Z])", " $1").CapitalizeFirst().Trim();
 			return splitCaseCache[s] = result;
+		}
+
+		///Capitalize first letter
+		public static string CapitalizeFirst(this string s){
+			if (string.IsNullOrEmpty(s)){ return s; }
+			return s.First().ToString().ToUpper() + s.Substring(1);
 		}
 
 		///Caps the length of a string to max length and adds "..." if more.
 		public static string CapLength(this string s, int max){
-			if (string.IsNullOrEmpty(s)){ return s; }
-			var result = s.Substring(0, Mathf.Min(s.Length, max) );
-			if (result.Length < s.Length){ result += "..."; }
+			if (string.IsNullOrEmpty(s) || s.Length <= max || max <= 3){ return s; }
+			var result = s.Substring(0, Mathf.Min(s.Length, max) - 3 );
+			result += "...";
 			return result;
 		}
 
@@ -84,6 +91,9 @@ namespace ParadoxNotion{
 			leafName = leafName.ToUpper().Replace(" ", string.Empty);
 
 			var words = input.Replace('.', ' ').Split(CHAR_EMPTY_ARRAY, StringSplitOptions.RemoveEmptyEntries);
+			if (words.Length == 0){
+				return 1;
+			}
 
 			if (input.LastOrDefault() == '.'){
 				//do score match for category
@@ -117,8 +127,8 @@ namespace ParadoxNotion{
 			if (categoryName == null){ categoryName = string.Empty; }
 
 			//if fewer than 3 chars, do a direct match check with leaf name
-			if (input.Length <= 2){
-				if (leafName.Length <= 2){
+			if (input.Length <= 1){
+				if (leafName.Length <= 1){
 					string alias = null; //usually only operator like searches are less than 2
 					if (ReflectionTools.op_CSharpAliases.TryGetValue(input, out alias)){
 						return alias == leafName;
@@ -132,11 +142,12 @@ namespace ParadoxNotion{
 			leafName = leafName.ToUpper().Replace(" ", string.Empty);
 			categoryName = categoryName.ToUpper().Replace(" ", string.Empty);
 			var fullPath = categoryName + "/" + leafName;
-			
-
 
 			//treat dot as spaces and split to words
 			var words = input.Replace('.', ' ').Split(CHAR_EMPTY_ARRAY, StringSplitOptions.RemoveEmptyEntries);
+			if (words.Length == 0){
+				return false;
+			}
 
 			//last input char check
 			if (input.LastOrDefault() == '.'){
@@ -159,6 +170,23 @@ namespace ParadoxNotion{
 			var lastWord = words[ words.Length - 1 ];
 			return leafName.Contains(lastWord);
 		}
+
+
+		public static string ReplaceWithin(this string text, char startChar, char endChar, System.Func<string, string> Process ){
+			var s = text;
+			var i = 0;
+			while ( (i = s.IndexOf(startChar, i)) != -1){
+				var end = s.Substring(i + 1).IndexOf(endChar);
+				var input = s.Substring(i + 1, end); //what's in the brackets
+				var output = s.Substring(i, end + 2); //what should be replaced (includes brackets)
+				var result = Process(input);
+				s = s.Replace(output, result);
+				i++;
+			}
+
+			return s;
+		}
+
 
 		///A more complete ToString version
 		public static string ToStringAdvanced(this object o) {

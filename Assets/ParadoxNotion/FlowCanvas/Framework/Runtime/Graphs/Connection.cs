@@ -60,13 +60,14 @@ namespace NodeCanvas.Framework {
 			get {return sourceNode != null? sourceNode.graph : null;}
 		}
 
+		///----------------------------------------------------------------------------------------------
 
 		//required
 		public Connection(){}
 
 
 		///Create a new Connection. Use this for constructor
-		public static Connection Create(Node source, Node target, int sourceIndex){
+		public static Connection Create(Node source, Node target, int sourceIndex = -1, int targetIndex = -1){
 			
 			if (source == null || target == null){
 				Debug.LogError("Can't Create a Connection without providing Source and Target Nodes");
@@ -84,12 +85,11 @@ namespace NodeCanvas.Framework {
 				source.graph.RecordUndo("Create Connection");
 			}
 
-			newConnection.SetSource(source, false, sourceIndex);
-			newConnection.SetTarget(target, false);
+			var resultSourceIndex = newConnection.SetSource(source, sourceIndex);
+			var resultTargetIndex = newConnection.SetTarget(target, targetIndex);
 
-			var targetIndex = target.inConnections.IndexOf(newConnection);
-			newConnection.OnValidate(sourceIndex, targetIndex);
-			newConnection.OnCreate(sourceIndex, targetIndex);
+			newConnection.OnValidate(resultSourceIndex, resultTargetIndex);
+			newConnection.OnCreate(resultSourceIndex, resultTargetIndex);
 			return newConnection;
 		}
 
@@ -108,17 +108,15 @@ namespace NodeCanvas.Framework {
 				newSource.graph.RecordUndo("Duplicate Connection");
 			}
 
-			newConnection.SetSource(newSource, false);
-			newConnection.SetTarget(newTarget, false);
+			var resultSourceIndex = newConnection.SetSource(newSource);
+			var resultTargetIndex = newConnection.SetTarget(newTarget);
 
 			var assignable = this as ITaskAssignable;
 			if (assignable != null && assignable.task != null){
 				(newConnection as ITaskAssignable).task = assignable.task.Duplicate(newSource.graph);
 			}
 
-			var sourceIndex = newSource.outConnections.IndexOf(newConnection);
-			var targetIndex = newTarget.inConnections.IndexOf(newConnection);
-			newConnection.OnValidate(sourceIndex, targetIndex);
+			newConnection.OnValidate(resultSourceIndex, resultTargetIndex);
 			return newConnection;
 		}
 
@@ -129,54 +127,68 @@ namespace NodeCanvas.Framework {
 		///Called when the connection is destroyed (always through graph.RemoveConnection or when a node is removed through graph.RemoveNode)
 		virtual public void OnDestroy(){}
 
-		///Relinks the source node of the connection
-		public void SetSource(Node newSource, bool isRelink = true, int index = -1){
+		///Sets the source node of the connection
+		public int SetSource(Node newSource, int index = -1){
 			
 			if (sourceNode == newSource){
-				return;
+				return -1;
 			}
 
 			if (graph != null){
 				graph.RecordUndo("Set Source");
 			}
 
-			if (isRelink){
+			//relink
+			if (sourceNode != null && sourceNode.outConnections.Contains(this)){
 				var i = sourceNode.outConnections.IndexOf(this);
 				sourceNode.OnChildDisconnected(i);
-				newSource.OnChildConnected(i);
 				sourceNode.outConnections.Remove(this);
 			}
 
 			index = index == -1? newSource.outConnections.Count : index;
 			newSource.outConnections.Insert(index, this);
+			newSource.OnChildConnected(index);
 			sourceNode = newSource;
+
+			#if UNITY_EDITOR
+			if (sourceNode != null && targetNode != null){
+				targetNode.TrySortConnectionsByPositionX();
+			}
+			#endif
+
+			return index;
 		}
 
-		///Relinks the target node of the connection
-		public void SetTarget(Node newTarget, bool isRelink = true, int index = -1){
+		///Sets the target node of the connection
+		public int SetTarget(Node newTarget, int index = -1){
 			
 			if (targetNode == newTarget){
-				return;
+				return -1;
 			}
 
 			if (graph != null){
 				graph.RecordUndo("Set Target");
 			}
 
-			if (isRelink){
+			//relink
+			if (targetNode != null && targetNode.inConnections.Contains(this)){
 				var i = targetNode.inConnections.IndexOf(this);
 				targetNode.OnParentDisconnected(i);
-				newTarget.OnParentConnected(i);
 				targetNode.inConnections.Remove(this);
 			}
 
 			index = index == -1? newTarget.inConnections.Count : index;
 			newTarget.inConnections.Insert(index, this);
+			newTarget.OnParentConnected(index);
 			targetNode = newTarget;
 
 			#if UNITY_EDITOR
-			targetNode.TrySortConnectionsByPositionX();
+			if (sourceNode != null && targetNode != null){
+				targetNode.TrySortConnectionsByPositionX();
+			}
 			#endif
+
+			return index;
 		}
 
 		//...

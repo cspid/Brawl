@@ -12,8 +12,8 @@ using NavMeshAgent = UnityEngine.AI.NavMeshAgent;
 
 namespace ParadoxNotion.Design {
 
-    ///Collection of preferred user types and utilities for type colors and icons
-    public static class UserTypePrefs {
+    ///Collection of preferred user types and utilities for types, type colors and icons
+    public static class TypePrefs {
 		
 		//Raised when the preferred types list change
 		public static event Action onPreferredTypesChanged;
@@ -183,7 +183,7 @@ namespace ParadoxNotion.Design {
 
 		//----------------------------------------------------------------------------------------------
 
-		private static readonly Color DEFAULT_TYPE_COLOR = new Color(1,1,1,0.8f);
+		private static readonly Color DEFAULT_TYPE_COLOR = Colors.Grey(0.75f);
 		///A Type to color lookup
 		private static Dictionary<Type, Color> typeColors = new Dictionary<Type, Color>()
 		{
@@ -234,7 +234,7 @@ namespace ParadoxNotion.Design {
 			if (!EditorGUIUtility.isProSkin){
 				return "#000000";
 			}
-			return Colors.ColorToHex(GetTypeColor(type));
+			return ColorUtils.ColorToHex(GetTypeColor(type));
 		}
 
 

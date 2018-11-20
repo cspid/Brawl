@@ -6,31 +6,53 @@ using UnityEditor;
 namespace ParadoxNotion.Design {
 
     ///Common Icons Database
+	[InitializeOnLoad]
     public static class Icons {
 
-		readonly public static Texture2D playIcon      = EditorGUIUtility.FindTexture("d_PlayButton");
-		readonly public static Texture2D pauseIcon     = EditorGUIUtility.FindTexture("d_PauseButton");
-		readonly public static Texture2D stepIcon      = EditorGUIUtility.FindTexture("d_StepButton");
-		readonly public static Texture2D viewIcon      = EditorGUIUtility.FindTexture("d_ViewToolOrbit On");
-		readonly public static Texture2D csIcon        = EditorGUIUtility.FindTexture("cs Script Icon");
-		readonly public static Texture2D jsIcon        = EditorGUIUtility.FindTexture("Js Script Icon");
-		readonly public static Texture2D tagIcon       = EditorGUIUtility.FindTexture("d_FilterByLabel");
-		readonly public static Texture2D searchIcon    = EditorGUIUtility.FindTexture("Search Icon");
-		readonly public static Texture2D infoIcon      = EditorGUIUtility.FindTexture("d_console.infoIcon.sml");
-		readonly public static Texture2D warningIcon   = EditorGUIUtility.FindTexture("d_console.warnicon.sml");
-		readonly public static Texture2D errorIcon     = EditorGUIUtility.FindTexture("d_console.erroricon.sml");
-		readonly public static Texture2D redCircle     = EditorGUIUtility.FindTexture("d_winbtn_mac_close");
-		readonly public static Texture2D folderIcon    = EditorGUIUtility.FindTexture("Folder Icon");
-		readonly public static Texture2D favoriteIcon  = EditorGUIUtility.FindTexture("Favorite Icon");
-		readonly public static Texture2D gearPopupIcon = EditorGUIUtility.FindTexture("d__Popup");
-		readonly public static Texture2D gearIcon      = EditorGUIUtility.FindTexture("EditorSettings Icon");
+		static Icons(){ Load(); }
+		
+		[InitializeOnLoadMethod]
+		static void Load(){
+			playIcon      = EditorGUIUtility.FindTexture("d_PlayButton");
+			pauseIcon     = EditorGUIUtility.FindTexture("d_PauseButton");
+			stepIcon      = EditorGUIUtility.FindTexture("d_StepButton");
+			viewIcon      = EditorGUIUtility.FindTexture("d_ViewToolOrbit On");
+			csIcon        = EditorGUIUtility.FindTexture("cs Script Icon");
+			tagIcon       = EditorGUIUtility.FindTexture("d_FilterByLabel");
+			searchIcon    = EditorGUIUtility.FindTexture("Search Icon");
+			infoIcon      = EditorGUIUtility.FindTexture("d_console.infoIcon.sml");
+			warningIcon   = EditorGUIUtility.FindTexture("d_console.warnicon.sml");
+			errorIcon     = EditorGUIUtility.FindTexture("d_console.erroricon.sml");
+			redCircle     = EditorGUIUtility.FindTexture("d_winbtn_mac_close");
+			folderIcon    = EditorGUIUtility.FindTexture("Folder Icon");
+			favoriteIcon  = EditorGUIUtility.FindTexture("Favorite Icon");
+			gearPopupIcon = EditorGUIUtility.FindTexture("d__Popup");
+			gearIcon      = EditorGUIUtility.FindTexture("EditorSettings Icon");
+
+		}
+
+		public static Texture2D playIcon{get; private set;}
+		public static Texture2D pauseIcon{get; private set;}
+		public static Texture2D stepIcon{get; private set;}
+		public static Texture2D viewIcon{get; private set;}
+		public static Texture2D csIcon{get; private set;}
+		public static Texture2D tagIcon{get; private set;}
+		public static Texture2D searchIcon{get; private set;}
+		public static Texture2D infoIcon{get; private set;}
+		public static Texture2D warningIcon{get; private set;}
+		public static Texture2D errorIcon{get; private set;}
+		public static Texture2D redCircle{get; private set;}
+		public static Texture2D folderIcon{get; private set;}
+		public static Texture2D favoriteIcon{get; private set;}
+		public static Texture2D gearPopupIcon{get; private set;}
+		public static Texture2D gearIcon{get; private set;}
 		
 
 		///----------------------------------------------------------------------------------------------
 
 		///Returns a type icon
 		public static Texture GetTypeIcon(System.Type type){
-			return UserTypePrefs.GetTypeIcon(type);
+			return TypePrefs.GetTypeIcon(type);
 		}
 	}
 }

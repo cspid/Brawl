@@ -1,24 +1,31 @@
 ﻿#if UNITY_EDITOR
 
-using System.Collections;
 using NodeCanvas.Editor;
+using ParadoxNotion;
 using ParadoxNotion.Design;
-using ParadoxNotion.Services;
 using UnityEditor;
 using UnityEngine;
 using Logger = ParadoxNotion.Services.Logger;
 
 
-namespace NodeCanvas.Framework{
+namespace NodeCanvas.Framework {
 
-	partial class Connection{
+    partial class Connection{
 
-		protected enum TipConnectionStyle
+		public enum RelinkState
+		{
+			None,
+			Source,
+			Target
+		}
+
+		public enum TipConnectionStyle
 		{
 			None,
 			Circle,
 			Arrow
 		}
+
 
 		[SerializeField]
 		private bool _infoCollapsed;
@@ -30,142 +37,140 @@ namespace NodeCanvas.Framework{
 		const float STATUS_BLINK_PACKET_SIZE  = 10f;
 		const float STATUS_BLINK_PACKET_COUNT = 4f;
 
+		public Rect startRect{get; private set;}
+		public Rect endRect{get; private set;}
 		private Rect centerRect;
-		private Rect startRect;
-		private Rect endRect;
+		private Vector2 fromTangent;
+		private Vector2 toTangent;
 
 		private Status lastStatus = Status.Resting;
-		private Color color = Node.statusColors[Status.Resting];
+		private Color color = StyleSheet.GetStatusColor(Status.Resting);
 		private float size = 3;
-		private bool isRelinking;
-		private Vector2 relinkClickPos;
-
 		private float statusChangeTime;
-		private Vector2 lineFromTangent;
-		private Vector2 lineToTangent;
-		private float hor;
+
+		private Vector2? relinkClickPos;
+		private bool relinkSnaped;
 
 		///----------------------------------------------------------------------------------------------
 
+		///Editor. Is info expanded?
 		private bool infoExpanded{
 			get {return !_infoCollapsed;}
 			set {_infoCollapsed = !value;}
 		}
 
-		virtual protected Color defaultColor{
-			get {return Node.statusColors[Status.Resting];}
+		///Editor. Is currently actively relinking?
+		private bool isRelinkingActive{
+			get {return relinkClickPos != null && relinkSnaped;}
 		}
 
-		virtual protected float defaultSize{
+		///Editor. Current relinking state
+		public RelinkState relinkState {get; private set;}
+
+		///Editor. Default Color of connection
+		virtual public Color defaultColor{
+			get {return StyleSheet.GetStatusColor(status);}
+		}
+
+		///Editor. Defacult size of connection
+		virtual public float defaultSize{
 			get {return 3f;}
 		}
 
-		virtual protected TipConnectionStyle tipConnectionStyle{
+		///Editor. End Tip connection style
+		virtual public TipConnectionStyle tipConnectionStyle{
 			get {return TipConnectionStyle.Circle;}
 		}
 
-		virtual protected bool canRelink{
-			get {return true;}
+		///Editor. Optional explicit "flow" direction
+		virtual public ParadoxNotion.PlanarDirection direction{
+			get {return ParadoxNotion.PlanarDirection.Auto;}
 		}
 
 		///----------------------------------------------------------------------------------------------
 
 		//Draw connection from-to
-		public void DrawConnectionGUI(Vector2 lineFrom, Vector2 lineTo){
-			
-			startRect = new Rect(0,0,12,12);
-			startRect.center = lineFrom;
+		public void DrawConnectionGUI(Vector2 fromPos, Vector2 toPos){
 
-			endRect = new Rect(0, 0, 16, 16);
-			endRect.center = lineTo;
+			var _startRect = new Rect(0, 0, 12, 12);
+			_startRect.center = fromPos;
+			startRect = _startRect;
 
-			ResolveTangents(lineFrom, lineTo);
+			var _endRect = new Rect(0, 0, 16, 16);
+			_endRect.center = toPos;
+			endRect = _endRect;
 
-			if (Application.isPlaying && isActive){
-				UpdateBlinkStatus(lineFrom, lineTo);
-			}
+			ParadoxNotion.CurveUtils.ResolveTangents(fromPos, toPos, sourceNode.rect, targetNode.rect, 0.8f, direction, out fromTangent, out toTangent);
 
-			HandleEvents(lineFrom, lineTo);
-			if (!isRelinking || Vector2.Distance(relinkClickPos, Event.current.mousePosition) < RELINK_DISTANCE_SNAP ){
-				DrawConnection(lineFrom, lineTo);
-				DrawInfoRect(lineFrom, lineTo);
+			HandleEvents(fromPos, toPos);
+			DrawConnection(fromPos, toPos);
+
+			if (!isRelinkingActive){
+				if (Application.isPlaying && isActive){
+					UpdateBlinkStatus(fromPos, toPos);
+				}
+				DrawInfoRect(fromPos, toPos);
 			}
 		}
 
-		//Resolve tangency
-		void ResolveTangents(Vector2 lineFrom, Vector2 lineTo){
-			var rigid = 0f;
-			if (NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Curved){ rigid = 0.8f; }
-			if (NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Stepped){ rigid = 1f; }
-			var tangentX = Mathf.Abs(lineFrom.x - lineTo.x) * rigid;
-			var tangentY = Mathf.Abs(lineFrom.y - lineTo.y) * rigid;
+		///Handle UI events
+		void HandleEvents(Vector2 fromPos, Vector2 toPos){
 
-			GUI.color = color;
-			hor = 0;
+			var e = Event.current;
 
-			if (lineFrom.x <= sourceNode.rect.x){
-				lineFromTangent = new Vector2(-tangentX, 0);
-				hor--;
-			}
-
-			if (lineFrom.x >= sourceNode.rect.xMax){
-				lineFromTangent = new Vector2(tangentX, 0);
-				hor++;
-			}
-
-			if (lineFrom.y <= sourceNode.rect.y){
-				lineFromTangent = new Vector2(0, -tangentY);
-			}
-
-			if (lineFrom.y >= sourceNode.rect.yMax){
-				lineFromTangent = new Vector2(0, tangentY);
-			}
-
-
-			if (lineTo.x <= targetNode.rect.x){
-				lineToTangent = new Vector2(-tangentX, 0);
-				hor--;
-				if (tipConnectionStyle == TipConnectionStyle.Arrow){
-					GUI.Box(endRect, string.Empty, CanvasStyles.arrowRight);
+			//On click select this connection
+			if ( GraphEditorUtility.allowClick && e.type == EventType.MouseDown){
+				float norm;
+				var onConnection = ParadoxNotion.CurveUtils.IsPosAlongCurve(fromPos, toPos, fromTangent, toTangent, e.mousePosition, out norm);
+				var onStart      = startRect.Contains(e.mousePosition);
+				var onEnd        = endRect.Contains(e.mousePosition);
+				var onCenter     = centerRect.Contains(e.mousePosition);
+				if (onConnection || onStart || onEnd || onCenter){
+					if (e.button == 0){
+						GraphEditorUtility.activeElement = this;
+						relinkClickPos = e.mousePosition;
+						relinkSnaped = false;
+						if (onConnection){ relinkState = norm <= 0.1f || e.shift? RelinkState.Source : RelinkState.Target; }
+						if (onStart){ relinkState = RelinkState.Source; }
+						if (onEnd){ relinkState = RelinkState.Target; }
+						if (onCenter){ relinkState = e.shift? RelinkState.Source : RelinkState.Target; }
+					}
+					e.Use();
 				}
 			}
 
-			if (lineTo.x >= targetNode.rect.xMax){
-				lineToTangent = new Vector2(tangentX, 0);
-				hor++;
-				if (tipConnectionStyle == TipConnectionStyle.Arrow){
-					GUI.Box(endRect, string.Empty, CanvasStyles.arrowLeft);
+			if (relinkClickPos != null){
+
+				if (relinkSnaped == false){
+					if (Vector2.Distance(relinkClickPos.Value, e.mousePosition) > RELINK_DISTANCE_SNAP){
+						relinkSnaped = true;
+						sourceNode.OnActiveRelinkStart(this);
+					}
+				}
+
+				if (e.rawType == EventType.MouseUp && e.button == 0){
+					if (relinkSnaped == true){
+						sourceNode.OnActiveRelinkEnd(this);			
+					}
+					relinkClickPos = null;
+					relinkSnaped = false;
+					relinkState = RelinkState.None;
+					e.Use();
 				}
 			}
 
-			if (lineTo.y <= targetNode.rect.y){
-				lineToTangent = new Vector2(0, -tangentY);
-				if (tipConnectionStyle == TipConnectionStyle.Arrow){
-					GUI.Box(endRect, string.Empty, CanvasStyles.arrowBottom);
-				}
+			if (GraphEditorUtility.allowClick && e.type == EventType.MouseUp && e.button == 1 && centerRect.Contains(e.mousePosition)){
+				GraphEditorUtility.PostGUI += ()=> { GetConnectionMenu().ShowAsContext(); };
+				e.Use();
 			}
-
-			if (lineTo.y >= targetNode.rect.yMax){
-				lineToTangent = new Vector2(0, tangentY);
-				if (tipConnectionStyle == TipConnectionStyle.Arrow){
-					GUI.Box(endRect, string.Empty, CanvasStyles.arrowTop);
-				}
-			}
-
-			if (tipConnectionStyle == TipConnectionStyle.Circle){
-				GUI.Box(endRect, string.Empty, CanvasStyles.circle);
-			}
-
-			hor = hor == 0? 0.5f : 1;
-			GUI.color = Color.white;
 		}
 
 		//The actual connection graphic
-		void DrawConnection(Vector2 lineFrom, Vector2 lineTo){
+		void DrawConnection(Vector2 fromPos, Vector2 toPos){
 			
-			color = isActive? color : new Color(0.3f, 0.3f, 0.3f);
+			color = isActive? color : Colors.Grey(0.3f);
 			if (!Application.isPlaying){
-				color = isActive? defaultColor : new Color(0.3f, 0.3f, 0.3f);
+				color = isActive? defaultColor : Colors.Grey(0.3f);
 				var highlight = GraphEditorUtility.activeElement == this || GraphEditorUtility.activeElement == sourceNode || GraphEditorUtility.activeElement == targetNode;
 				if (startRect.Contains(Event.current.mousePosition) || endRect.Contains(Event.current.mousePosition)){
 					highlight = true;
@@ -174,25 +179,37 @@ namespace NodeCanvas.Framework{
 				size = highlight? defaultSize + 2 : defaultSize;
 			}
 
-			Handles.color = color;
-			if (NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Curved){
-				var shadow = new Vector2(3.5f, 3.5f);
-				Handles.DrawBezier(lineFrom, lineTo + shadow, lineFrom + shadow + lineFromTangent + shadow, lineTo + shadow + lineToTangent, new Color(0,0,0,0.1f), null, size + 10f);
-				Handles.DrawBezier(lineFrom, lineTo, lineFrom + lineFromTangent, lineTo + lineToTangent, color, null, size);
-			} else if (NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Stepped){
-				var shadow = new Vector2(1,1);
-				Handles.DrawPolyLine(lineFrom, lineFrom + lineFromTangent * hor, lineTo + lineToTangent * hor, lineTo);
-				Handles.DrawPolyLine(lineFrom + shadow, (lineFrom + lineFromTangent * hor) + shadow, (lineTo + lineToTangent * hor) + shadow, lineTo + shadow);
-			} else {
-				Handles.DrawBezier(lineFrom, lineTo, lineFrom, lineTo, color, null, size);
+			//alter from/to if active relinking
+			if (isRelinkingActive){
+				if (relinkState == RelinkState.Source){
+					fromPos = Event.current.mousePosition;
+				}
+				if (relinkState == RelinkState.Target){
+					toPos = Event.current.mousePosition;
+				}
+				ParadoxNotion.CurveUtils.ResolveTangents(fromPos, toPos, 0.8f, direction, out fromTangent, out toTangent);
+				size = defaultSize;
 			}
-			Handles.color = Color.white;
+
+			var shadow = new Vector2(3.5f, 3.5f);
+			Handles.DrawBezier(fromPos, toPos + shadow, fromPos + shadow + fromTangent + shadow, toPos + shadow + toTangent, Color.black.WithAlpha(0.1f), null, size + 10f);
+			Handles.DrawBezier(fromPos, toPos, fromPos + fromTangent, toPos + toTangent, color, null, size);
+
+			GUI.color = color.WithAlpha(1);
+			if (tipConnectionStyle == TipConnectionStyle.Arrow){
+				GUI.DrawTexture(endRect, StyleSheet.GetDirectionArrow(toTangent.normalized));
+			}
+			if (tipConnectionStyle == TipConnectionStyle.Circle){
+				GUI.DrawTexture(endRect, StyleSheet.circle);
+			}
+			GUI.color = Color.white;
 		}
 
 		//Information showing in the middle
-		void DrawInfoRect(Vector2 lineFrom, Vector2 lineTo){
+		void DrawInfoRect(Vector2 fromPos, Vector2 toPos){
 
-			centerRect.center = GetPosAlongConnectionCurve(lineFrom, lineTo, lineFromTangent, lineToTangent, 0.5f);
+			centerRect.center = ParadoxNotion.CurveUtils.GetPosAlongCurve(fromPos, toPos, fromTangent, toTangent, 0.55f);
+
 			var isExpanded = infoExpanded || GraphEditorUtility.activeElement == this || GraphEditorUtility.activeElement == sourceNode;
 			var alpha = isExpanded? 0.8f : 0.25f;
 			var info = GetConnectionInfo();
@@ -203,14 +220,19 @@ namespace NodeCanvas.Framework{
 					extraInfo = "\n" + extraInfo;
 				}
 
-				var textToShow = isExpanded? string.Format("<size=9>{0}{1}</size>", info, extraInfo) :  "<size=9>...</size>";
-				var finalSize = CanvasStyles.box.CalcSize(new GUIContent(textToShow));
+				var textToShow = isExpanded? string.Format("<size=9>{0}{1}</size>", info, extraInfo) : "<size=9>...</size>";
+				var finalSize = StyleSheet.box.CalcSize(new GUIContent(textToShow));
 
 				centerRect.width = finalSize.x;
 				centerRect.height = finalSize.y;
 
-				GUI.color = new Color(1f,1f,1f,alpha);
-				GUI.Box(centerRect, textToShow, CanvasStyles.box);
+				EditorGUIUtility.AddCursorRect(centerRect, MouseCursor.Link);
+
+				GUI.color = Colors.Grey(EditorGUIUtility.isProSkin? 0.17f : 0.5f).WithAlpha(0.95f);
+				GUI.DrawTexture(centerRect, Texture2D.whiteTexture);
+
+				GUI.color = Color.white.WithAlpha(alpha);
+				GUI.Label(centerRect, textToShow, Styles.centerLabel);
 				GUI.color = Color.white;
 
 			} else {
@@ -220,40 +242,44 @@ namespace NodeCanvas.Framework{
 			}
 		}
 
-		///Returns the mid position rect of the connection
-		public Rect GetMidRect(){
-			return centerRect;
-		}
+		///Updates the blink status
+		void UpdateBlinkStatus(Vector2 fromPos, Vector2 toPos){
+			if (status != lastStatus){
+				lastStatus = status;
+				statusChangeTime = Time.time;
+			}
 
-		///Get position on curve from, to, by t
-		static Vector2 GetPosAlongConnectionCurve(Vector2 from, Vector2 to, Vector2 fromTangent, Vector2 toTangent, float t){
-			float u = 1.0f - t;
-		    float tt = t * t;
-		    float uu = u * u;
-		    float uuu = uu * u;
-		    float ttt = tt * t;
-		    Vector2 result = uuu * from;
-		    result += 3 * uu * t * (from + fromTangent);
-		    result += 3 * u * tt * (to + toTangent);
-		    result += ttt * to;
-		    return result;
-		}
+			var deltaTimeSinceChange = (Time.time - statusChangeTime);
+			if (status != Status.Resting || size != defaultSize){
+				size = Mathf.Lerp(defaultSize + STATUS_BLINK_SIZE_ADD, defaultSize, deltaTimeSinceChange / STATUS_BLINK_DURATION);
+			}
 
-		///Is target position along from, to curve
-		static bool IsPositionAlongConnection(Vector2 from, Vector2 to, Vector2 fromTangent, Vector2 toTangent, Vector2 targetPosition){
-			if ( ParadoxNotion.RectUtils.GetBoundRect(from, to).Contains(targetPosition) ){
-				var CLICK_CHECK_RES = 50f;
-				var CLICK_CHECK_DISTANCE = 10f;
-				for (var i = 0f; i <= CLICK_CHECK_RES; i++){
-					var checkPos = GetPosAlongConnectionCurve(from, to, fromTangent, toTangent, i/CLICK_CHECK_RES );
-					if ( Vector2.Distance( targetPosition, checkPos ) < CLICK_CHECK_DISTANCE ){
-						return true;
-					}
+			if (status != Status.Resting || size == defaultSize){
+				color = defaultColor;
+			}
+
+			if (status == Status.Running){
+				var packetTraversal = deltaTimeSinceChange * STATUS_BLINK_PACKET_SPEED;
+				for (var i = 0f; i < STATUS_BLINK_PACKET_COUNT; i++){
+					var progression = packetTraversal + (i/STATUS_BLINK_PACKET_COUNT);
+					var normPos = Mathf.Repeat(progression, 1f);
+
+					var packetColor = this.color;
+					var pingPong = Mathf.PingPong(normPos, 0.5f);
+					var norm = (pingPong * 2) / 0.5f;
+					var pSize = Mathf.Lerp(0.5f, 1f, norm) * STATUS_BLINK_PACKET_SIZE;
+					packetColor.a = norm * ( deltaTimeSinceChange / (STATUS_BLINK_DURATION + 0.25f) );
+
+					var rect = new Rect(0, 0, pSize, pSize);
+					rect.center = ParadoxNotion.CurveUtils.GetPosAlongCurve(fromPos, toPos, fromTangent, toTangent, normPos);;
+					GUI.color = packetColor;
+					GUI.DrawTexture(rect, StyleSheet.circle);
+					GUI.color = Color.white;
 				}
 			}
-			return false;
 		}
 
+		///----------------------------------------------------------------------------------------------
 
 		//The connection's inspector
 		public static void ShowConnectionInspectorGUI(Connection c){
@@ -296,123 +322,55 @@ namespace NodeCanvas.Framework{
 		virtual protected void OnConnectionInspectorGUI(){}
 
 
-		///Handle UI events
-		void HandleEvents(Vector2 lineFrom, Vector2 lineTo){
+		///Returns the mid position rect of the connection
+		public Rect GetMidRect(){
+			return centerRect;
+		}
 
-			var e = Event.current;
 
-			//On click select this connection
-			if ( GraphEditorUtility.allowClick && e.type == EventType.MouseDown && e.button == 0 ){
-				if ( IsPositionAlongConnection(lineFrom, lineTo, lineFromTangent, lineToTangent, e.mousePosition) || centerRect.Contains(e.mousePosition) || startRect.Contains(e.mousePosition) || endRect.Contains(e.mousePosition) ){
-					if (canRelink){
-						isRelinking = true;
-						relinkClickPos = e.mousePosition;
-					}
-					GraphEditorUtility.activeElement = this;
-					e.Use();
-					return;
-				}
-			}
-
-			if (canRelink && isRelinking){
-				if (Vector2.Distance(relinkClickPos, e.mousePosition) > RELINK_DISTANCE_SNAP){
-					Handles.DrawBezier(startRect.center, e.mousePosition, startRect.center, e.mousePosition, defaultColor, null, defaultSize);
-				}
-				if (e.rawType == EventType.MouseUp && e.button == 0){					
-					foreach(var node in graph.allNodes){
-						if (node != targetNode && node != sourceNode && node.rect.Contains(e.mousePosition) && node.IsNewConnectionAllowed() ){
-							SetTarget(node);
-							break;
-						}
-					}
-					isRelinking = false;
-					e.Use();
-				}
-			}
-
-			if (GraphEditorUtility.allowClick && e.type == EventType.MouseDown && e.button == 1 && centerRect.Contains(e.mousePosition)){
-				var menu = new GenericMenu();
-				menu.AddItem(new GUIContent(infoExpanded? "Collapse Info" : "Expand Info"), false, ()=> { infoExpanded = !infoExpanded; });
-				menu.AddItem(new GUIContent(isActive? "Disable" : "Enable"), false, ()=> { isActive = !isActive; });
+		///the connection context menu
+		GenericMenu GetConnectionMenu(){
+			var menu = new GenericMenu();
+			menu.AddItem(new GUIContent(infoExpanded? "Collapse Info" : "Expand Info"), false, ()=> { infoExpanded = !infoExpanded; });
+			menu.AddItem(new GUIContent(isActive? "Disable" : "Enable"), false, ()=> { isActive = !isActive; });
+			
+			var assignable = this as ITaskAssignable;
+			if (assignable != null){
 				
-				var assignable = this as ITaskAssignable;
-				if (assignable != null){
-					
-					if (assignable.task != null){
-						menu.AddItem(new GUIContent("Copy Assigned Condition"), false, ()=> { CopyBuffer.Set<Task>(assignable.task); });
-					} else {
-						menu.AddDisabledItem(new GUIContent("Copy Assigned Condition"));
-					}
+				if (assignable.task != null){
+					menu.AddItem(new GUIContent("Copy Assigned Condition"), false, ()=> { CopyBuffer.Set<Task>(assignable.task); });
+				} else {
+					menu.AddDisabledItem(new GUIContent("Copy Assigned Condition"));
+				}
 
-					if (CopyBuffer.Has<Task>()){
-						menu.AddItem(new GUIContent(string.Format("Paste Assigned Condition ({0})", CopyBuffer.Peek<Task>().name)), false, ()=>
-						{
-							if (assignable.task == CopyBuffer.Peek<Task>()){
+				if (CopyBuffer.Has<Task>()){
+					menu.AddItem(new GUIContent(string.Format("Paste Assigned Condition ({0})", CopyBuffer.Peek<Task>().name)), false, ()=>
+					{
+						if (assignable.task == CopyBuffer.Peek<Task>()){
+							return;
+						}
+
+						if (assignable.task != null){
+							if (!EditorUtility.DisplayDialog("Paste Condition", string.Format("Connection already has a Condition assigned '{0}'. Replace assigned condition with pasted condition '{1}'?", assignable.task.name, CopyBuffer.Peek<Task>().name), "YES", "NO")){
 								return;
 							}
+						}
 
-							if (assignable.task != null){
-								if (!EditorUtility.DisplayDialog("Paste Condition", string.Format("Connection already has a Condition assigned '{0}'. Replace assigned condition with pasted condition '{1}'?", assignable.task.name, CopyBuffer.Peek<Task>().name), "YES", "NO")){
-									return;
-								}
-							}
+						try {assignable.task = CopyBuffer.Get<Task>().Duplicate(graph);}
+						catch {Logger.LogWarning("Can't paste Condition here. Incombatible Types.", "Editor", this);}
+					});
 
-							try {assignable.task = CopyBuffer.Get<Task>().Duplicate(graph);}
-							catch {Logger.LogWarning("Can't paste Condition here. Incombatible Types.", "Editor", this);}
-						});
-
-					} else {
-						menu.AddDisabledItem(new GUIContent("Paste Assigned Condition"));
-					}
-
+				} else {
+					menu.AddDisabledItem(new GUIContent("Paste Assigned Condition"));
 				}
 
-				menu.AddSeparator("/");
-				menu.AddItem(new GUIContent("Delete"), false, ()=> { graph.RemoveConnection(this); });
-
-				GraphEditorUtility.PostGUI += ()=> { menu.ShowAsContext(); };
-				e.Use();
 			}
+
+			menu.AddSeparator("/");
+			menu.AddItem(new GUIContent("Delete"), false, ()=> { graph.RemoveConnection(this); });
+			return menu;
 		}
 
-
-
-
-		void UpdateBlinkStatus(Vector2 lineFrom, Vector2 lineTo){
-			if (status != lastStatus){
-				lastStatus = status;
-				statusChangeTime = Time.time;
-			}
-
-			var deltaTimeSinceChange = (Time.time - statusChangeTime);
-			if (status != Status.Resting || size != defaultSize){
-				size = Mathf.Lerp(defaultSize + STATUS_BLINK_SIZE_ADD, defaultSize, deltaTimeSinceChange / STATUS_BLINK_DURATION);
-			}
-
-			if (status != Status.Resting || size == defaultSize){
-				color = status == Status.Resting? defaultColor : Node.statusColors[status];
-			}
-
-			if (NCPrefs.connectionStyle != NCPrefs.ConnectionStyle.Stepped && status == Status.Running){
-				var packetTraversal = deltaTimeSinceChange * STATUS_BLINK_PACKET_SPEED;
-				for (var i = 0f; i < STATUS_BLINK_PACKET_COUNT; i++){
-					var progression = packetTraversal + (i/STATUS_BLINK_PACKET_COUNT);
-					var normPos = Mathf.Repeat(progression, 1f);
-
-					var packetColor = this.color;
-					var pingPong = Mathf.PingPong(normPos, 0.5f);
-					var norm = (pingPong * 2) / 0.5f;
-					var pSize = Mathf.Lerp(0.5f, 1f, norm) * STATUS_BLINK_PACKET_SIZE;
-					packetColor.a = norm * ( deltaTimeSinceChange / (STATUS_BLINK_DURATION + 0.25f) );
-
-					var rect = new Rect(0, 0, pSize, pSize);
-					rect.center = GetPosAlongConnectionCurve(lineFrom, lineTo, lineFromTangent, lineToTangent, normPos);;
-					GUI.color = packetColor;
-					GUI.Box(rect, string.Empty, CanvasStyles.circle);
-					GUI.color = Color.white;
-				}
-			}
-		}
 	}
 }
 

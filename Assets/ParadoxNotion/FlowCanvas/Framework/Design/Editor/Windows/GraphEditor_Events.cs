@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_EDITOR
+
+using System.Collections.Generic;
 using System.Linq;
 using NodeCanvas.Framework;
 using ParadoxNotion;
@@ -39,8 +41,13 @@ namespace NodeCanvas.Editor {
 				}
 			}
 
-			if ( (e.button == 2 && e.type == EventType.MouseDrag && canvasRect.Contains(e.mousePosition))
-				|| ( (e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.alt && e.isMouse) )
+			if (e.type == EventType.MouseDrag && e.alt && e.button == 1){
+				ZoomAt(new Vector2(screenWidth/2, screenHeight/2), e.delta.x/100);
+				e.Use();
+			}
+
+			if (  (e.button == 2 && e.type == EventType.MouseDrag && canvasRect.Contains(e.mousePosition) ) ||
+				( (e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.alt && e.isMouse) )
 			{
 				pan += e.delta;
 				smoothPan = null;
@@ -143,7 +150,7 @@ namespace NodeCanvas.Editor {
 				}
 
 				//Right click canvas context menu. Basicaly for adding new nodes.
-				if (e.type == EventType.ContextClick){
+				if (e.type == EventType.ContextClick && !e.alt){
 					var menu = GetAddNodeMenu(graph, canvasMousePos);
 					if (CopyBuffer.Has<Node[]>() && CopyBuffer.Peek<Node[]>()[0].GetType().IsSubclassOf(graph.baseNodeType)){
 						menu.AddSeparator("/");
@@ -178,3 +185,5 @@ namespace NodeCanvas.Editor {
 		}		
 	}
 }
+
+#endif

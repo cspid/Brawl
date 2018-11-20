@@ -442,12 +442,12 @@ namespace ParadoxNotion{
 			var methodName = method.Name;
 			if (method.IsSpecialName){
 				if (methodName.StartsWith(METHOD_SPECIAL_NAME_GET)){
-					methodName = "Get " + methodName.Substring(METHOD_SPECIAL_NAME_GET.Length);
+					methodName = "Get " + methodName.Substring(METHOD_SPECIAL_NAME_GET.Length).CapitalizeFirst();
 					specialNameType = MethodType.PropertyAccessor;
 					return methodName;
 				}
 				if (methodName.StartsWith(METHOD_SPECIAL_NAME_SET)){
-					methodName = "Set " + methodName.Substring(METHOD_SPECIAL_NAME_SET.Length);
+					methodName = "Set " + methodName.Substring(METHOD_SPECIAL_NAME_SET.Length).CapitalizeFirst();
 					specialNameType = MethodType.PropertyAccessor;
 					return methodName;
 				}
@@ -1082,14 +1082,6 @@ namespace ParadoxNotion{
 			var constraints = typeDef.GetGenericParameterConstraints();
 			var attributes = typeDef.GenericParameterAttributes;
 #endif
-
-			// if (constraints.Length == 0){
-			// 	return true;
-			// }
-
-			// if (constraints.Length == 1 && constraints.First().RTIsAssignableFrom(type)){
-			// 	return true;
-			// }
 
 			var result = true;
 			for (var i = 0; i < constraints.Length; i++) {

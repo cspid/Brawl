@@ -15,7 +15,7 @@ namespace ParadoxNotion.Design {
 
 		[InitializeOnLoadMethod]
 		static void Init(){
-			UserTypePrefs.onPreferredTypesChanged += ()=>{cachedInfos = null; };
+			TypePrefs.onPreferredTypesChanged += ()=>{cachedInfos = null; };
 		}
 
 		//For gathering script/type meta-information
@@ -90,11 +90,11 @@ namespace ParadoxNotion.Design {
 				if (isGeneric){
 					var exposeAsBaseDefinition = subType.RTIsDefined<ExposeAsDefinitionAttribute>(true);
 					if (!exposeAsBaseDefinition){
-						var typesToWrap = UserTypePrefs.GetPreferedTypesList(true);
+						var typesToWrap = TypePrefs.GetPreferedTypesList(true);
 						foreach (var t in typesToWrap){
 							infosResult.Add( info.MakeGenericInfo(t, string.Format("/{0}/{1}", info.name, t.NamespaceToPath())) );
-							infosResult.Add( info.MakeGenericInfo(typeof(List<>).MakeGenericType(t), string.Format("/{0}/{1}{2}", info.name, UserTypePrefs.LIST_MENU_STRING, t.NamespaceToPath()), -1 ) );
-							infosResult.Add( info.MakeGenericInfo(typeof(Dictionary<,>).MakeGenericType(typeof(string), t), string.Format("/{0}/{1}{2}", info.name, UserTypePrefs.DICT_MENU_STRING, t.NamespaceToPath()), -2 ) );
+							infosResult.Add( info.MakeGenericInfo(typeof(List<>).MakeGenericType(t), string.Format("/{0}/{1}{2}", info.name, TypePrefs.LIST_MENU_STRING, t.NamespaceToPath()), -1 ) );
+							infosResult.Add( info.MakeGenericInfo(typeof(Dictionary<,>).MakeGenericType(typeof(string), t), string.Format("/{0}/{1}{2}", info.name, TypePrefs.DICT_MENU_STRING, t.NamespaceToPath()), -2 ) );
 						}
 						continue;
 					}
@@ -143,7 +143,7 @@ namespace ParadoxNotion.Design {
 			return null;
 		}
 
-        //...
+        //Not really. Only for purposes of ScriptInfos usage.
         static string NamespaceToPath(this Type type){
 			if (type == null){ return string.Empty; }
 			return string.IsNullOrEmpty(type.Namespace)? "No Namespace" : type.Namespace.Split('.').First();

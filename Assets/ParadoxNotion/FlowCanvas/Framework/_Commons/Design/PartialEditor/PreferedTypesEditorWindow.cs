@@ -11,7 +11,7 @@ using System.Linq;
 namespace ParadoxNotion.Design{
 
 	///An editor for preferred types
-	public class PreferedTypesEditorWindow : EditorWindow {
+	public class TypePrefsEditorWindow : EditorWindow {
 
 		private List<System.Type> typeList;
 		private List<System.Type> alltypes;
@@ -19,14 +19,14 @@ namespace ParadoxNotion.Design{
 
 		///Open window
 		public static void ShowWindow(){
-			var window = GetWindow<PreferedTypesEditorWindow>();
+			var window = GetWindow<TypePrefsEditorWindow>();
 			window.Show();
 		}
 
 		//...
 		void OnEnable(){
 	        titleContent = new GUIContent("Preferred Types");
-			typeList = UserTypePrefs.GetPreferedTypesList();
+			typeList = TypePrefs.GetPreferedTypesList();
 			alltypes = ReflectionTools.GetAllTypes(true).Where( t => !t.IsGenericType && !t.IsGenericTypeDefinition).ToList();
 		}
 
@@ -83,14 +83,14 @@ namespace ParadoxNotion.Design{
 				if (EditorUtility.DisplayDialog("Generate AOT Classes", "A script relevant to AOT compatibility for certain platforms will now be generated.", "OK")){
 					var path = EditorUtility.SaveFilePanelInProject ("AOT Classes File", "AOTClasses", "cs", "");
 		            if (!string.IsNullOrEmpty(path)){
-						AOTClassesGenerator.GenerateAOTClasses( path, UserTypePrefs.GetPreferedTypesList(true).ToArray() );
+						AOTClassesGenerator.GenerateAOTClasses( path, TypePrefs.GetPreferedTypesList(true).ToArray() );
 		            }
 				}
 
 				if (EditorUtility.DisplayDialog("Generate link.xml File", "A file relevant to 'code stripping' for platforms that have code stripping enabled will now be generated.", "OK")){
 					var path = EditorUtility.SaveFilePanelInProject ("AOT link.xml", "link", "xml", "");
 		            if (!string.IsNullOrEmpty(path)){
-						AOTClassesGenerator.GenerateLinkXML( path, UserTypePrefs.GetPreferedTypesList().ToArray() );
+						AOTClassesGenerator.GenerateLinkXML( path, TypePrefs.GetPreferedTypesList().ToArray() );
 		            }
 				}
 
@@ -101,8 +101,8 @@ namespace ParadoxNotion.Design{
 
 			if (GUILayout.Button("RESET DEFAULTS")){
 				if (EditorUtility.DisplayDialog("Reset Preferred Types", "Are you sure?", "Yes", "NO!")){
-					UserTypePrefs.ResetTypeConfiguration();
-					typeList = UserTypePrefs.GetPreferedTypesList();
+					TypePrefs.ResetTypeConfiguration();
+					typeList = TypePrefs.GetPreferedTypesList();
 					Save();
 				}
 			}
@@ -136,7 +136,7 @@ namespace ParadoxNotion.Design{
 					GUILayout.Label("---");
 				} else {
 					var name = type.FriendlyName();
-					var icon = UserTypePrefs.GetTypeIcon(type);
+					var icon = TypePrefs.GetTypeIcon(type);
 					GUILayout.Label(icon, GUILayout.Width(16), GUILayout.Height(16));
 					GUILayout.Label(name, GUILayout.Width(300));
 					GUILayout.Label(type.Namespace);
@@ -203,7 +203,7 @@ namespace ParadoxNotion.Design{
 
 		///Save changes
 		void Save(){
-			UserTypePrefs.SetPreferedTypesList(typeList);
+			TypePrefs.SetPreferedTypesList(typeList);
 		}
 	}
 }

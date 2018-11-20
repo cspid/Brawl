@@ -273,20 +273,18 @@ namespace NodeCanvas.Framework{
 
 			#if UNITY_EDITOR
 			if (isBreakpoint && status == Status.Resting){
-				var breakEditor = NodeCanvas.Editor.NCPrefs.breakpointPauseEditor;
+				var breakEditor = NodeCanvas.Editor.Prefs.breakpointPauseEditor;
 				var owner = agent as GraphOwner;
 				var contextName = owner != null? owner.gameObject.name : graph.name;
                 ParadoxNotion.Services.Logger.LogWarning(string.Format("Node: '{0}' | ID: '{1}' | Graph Type: '{2}' | Context Object: '{3}'", name, ID, graph.GetType().Name, contextName), "Breakpoint", this);
-				if (breakEditor || owner == null){
-					StartCoroutine( YieldBreak(agent, blackboard) );
-					status = Status.Running;
-					return Status.Running;					
-				}
 				if (owner != null){
 					owner.PauseBehaviour();
-					status = Status.Running;
-					return Status.Running;
 				}
+				if (breakEditor){
+					StartCoroutine( YieldBreak(()=>	{ if (owner != null){ owner.StartBehaviour(); }	}));
+				}
+				status = Status.Running;
+				return Status.Running;
 			}
 			#endif
 
@@ -317,10 +315,10 @@ namespace NodeCanvas.Framework{
 		///----------------------------------------------------------------------------------------------
 
 		///Helper for breakpoints
-		IEnumerator YieldBreak(Component agent, IBlackboard blackboard){
+		IEnumerator YieldBreak(System.Action resume){
 			Debug.Break();
 			yield return null;
-			status = OnExecute(agent, blackboard);
+			resume();
 		}
 
 		///A little helper function to log errors easier
@@ -358,9 +356,9 @@ namespace NodeCanvas.Framework{
 
 		///----------------------------------------------------------------------------------------------
 
-		///Sends an event to the graph
-		public void SendEvent(EventData eventData){
-			graph.SendEvent(eventData);
+		///Sends an event to the graph (same as calling graph.SendEvent)
+		protected void SendEvent(EventData eventData){
+			graph.SendEvent(eventData, this);
 		}
 
 		///Subscribe the node to a unity message send to the agent
@@ -404,58 +402,56 @@ namespace NodeCanvas.Framework{
 
 		///----------------------------------------------------------------------------------------------
 
-		///Returns if a new input connection should be allowed.
-		public bool IsNewConnectionAllowed(){ return IsNewConnectionAllowed(null); }
-		///Returns if a new input connection should be allowed from the source node.
-		public bool IsNewConnectionAllowed(Node sourceNode){
+		///Returns whether source and target nodes can generaly be connected together.
+		///This only validates max in/out connections that source and target nodes has.
+		///Providing an existing ref connection, will bypass source/target validation respectively if that connection is already connected to that source/target node.
+		public static bool IsNewConnectionAllowed(Node sourceNode, Node targetNode, Connection refConnection = null){
 
-			if (sourceNode != null){
-				if (this == sourceNode){
-                    ParadoxNotion.Services.Logger.LogWarning("Node can't connect to itself", "Editor", this);
-					return false;
-				}
+			if (sourceNode == null || targetNode == null){
+				ParadoxNotion.Services.Logger.LogWarning("A Node Provided is null.", "Editor", targetNode);
+				return false;
+			}
 
+			if (sourceNode == targetNode){
+				ParadoxNotion.Services.Logger.LogWarning("Node can't connect to itself.", "Editor", targetNode);
+				return false;
+			}
+
+			if (refConnection == null || refConnection.sourceNode != sourceNode){
 				if (sourceNode.outConnections.Count >= sourceNode.maxOutConnections && sourceNode.maxOutConnections != -1){
-                    ParadoxNotion.Services.Logger.LogWarning("Source node can have no more out connections.", "Editor", this);
+                    ParadoxNotion.Services.Logger.LogWarning("Source node can have no more out connections.", "Editor", sourceNode);
 					return false;
 				}
 			}
 
-			if (this == graph.primeNode && maxInConnections == 1){
-                ParadoxNotion.Services.Logger.LogWarning("Target node can have no more connections", "Editor", this);
-				return false;
-			}
+			if (refConnection == null || refConnection.targetNode != targetNode){
+				if (targetNode.maxInConnections <= targetNode.inConnections.Count && targetNode.maxInConnections != -1){
+					ParadoxNotion.Services.Logger.LogWarning("Target node can have no more in connections.", "Editor", targetNode);
+					return false;
+				}
 
-			if (maxInConnections <= inConnections.Count && maxInConnections != -1){
-                ParadoxNotion.Services.Logger.LogWarning("Target node can have no more connections", "Editor", this);
-				return false;
-			}
-
-			return true;
-		}
-
-		///Updates the node ID in it's current graph. This is called in the editor GUI for convenience, as well as whenever a change is made in the node graph and from the node graph.
-		public int AssignIDToGraph(int lastID){
-			if (!isChecked){
-				isChecked = true;
-				lastID++;
-				ID = lastID;
-				for (var i = 0; i < outConnections.Count; i++){
-					lastID = outConnections[i].targetNode.AssignIDToGraph(lastID);
+				if (targetNode == targetNode.graph.primeNode && targetNode.maxInConnections == 1){
+					ParadoxNotion.Services.Logger.LogWarning("Target node can have no more in connections.", "Editor", targetNode);
+					return false;
 				}
 			}
 
-			return lastID;
+			var final = true;
+			final &= sourceNode.CanConnectToTarget(targetNode);
+			final &= targetNode.CanConnectFromSource(sourceNode);
+			return final;
 		}
 
-		//...
-		public void ResetRecursion(){
-			if (isChecked){
-				isChecked = false;
-				for (var i = 0; i < outConnections.Count; i++){
-					outConnections[i].targetNode.ResetRecursion();
-				}
-			}
+		///Override for explicit handling
+		virtual protected bool CanConnectToTarget(Node targetNode){ return true; }
+		///Override for explicit handling
+		virtual protected bool CanConnectFromSource(Node sourceNode){ return true; }
+
+		///Are provided nodes connected at all regardless of parent/child relation?
+		public static bool AreNodesConnected(Node a, Node b){
+			var conditionA = a != null && a.outConnections.FirstOrDefault(c => c.targetNode == b) != null;
+			var conditionB = b != null && b.outConnections.FirstOrDefault(c => c.targetNode == a) != null;
+			return conditionA || conditionB;
 		}
 
 		///----------------------------------------------------------------------------------------------
@@ -471,20 +467,30 @@ namespace NodeCanvas.Framework{
 		}
 
 
-		///Returns all parent nodes in case node can have many parents like in FSM and Dialogue Trees
-		public List<Node> GetParentNodes(){
+		///Returns all *direct* parent nodes (first depth level)
+		public Node[] GetParentNodes(){
 			if (inConnections.Count != 0){
-				return inConnections.Select(c => c.sourceNode).ToList();
+				return inConnections.Select(c => c.sourceNode).ToArray();
 			}
-			return new List<Node>();
+			return new Node[0];
 		}
 
-		///Get all childs of this node, on the first depth level
-		public List<Node> GetChildNodes(){
+		///Returns all *direct* children nodes (first depth level)
+		public Node[] GetChildNodes(){
 			if (outConnections.Count != 0){
-				return outConnections.Select(c => c.targetNode).ToList();
+				return outConnections.Select(c => c.targetNode).ToArray();
 			}
-			return new List<Node>();
+			return new Node[0];
+		}
+
+		///Is node child of parent node?
+		public bool IsChildOf(Node parentNode){
+			return inConnections.Any(c => c.sourceNode == parentNode);
+		}
+
+		///Is node parent of child node?
+		public bool IsParentOf(Node childNode){
+			return outConnections.Any(c => c.targetNode == childNode);
 		}
 
 		///Override to define node functionality. The Agent and Blackboard used to start the Graph are propagated

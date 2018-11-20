@@ -330,7 +330,7 @@ namespace NodeCanvas.Framework {
 			varRef = targetBB.AddVariable(varName, varType);
 			if (varRef != null){
 				#if UNITY_EDITOR
-				if (NodeCanvas.Editor.NCPrefs.logDynamicParametersInfo){
+				if (NodeCanvas.Editor.Prefs.logDynamicParametersInfo){
 					Logger.Log(string.Format("Parameter '{0}' (of type '{1}') promoted to a Variable in Blackboard '{2}'.", varName, varType.FriendlyName(), bbName), "Variable", this);
 				}
 				#endif
@@ -415,7 +415,7 @@ namespace NodeCanvas.Framework {
 				//Dynamic?
 				if (varRef == null && bb != null && !string.IsNullOrEmpty(name)){
 					#if UNITY_EDITOR
-					if (NodeCanvas.Editor.NCPrefs.logDynamicParametersInfo){
+					if (NodeCanvas.Editor.Prefs.logDynamicParametersInfo){
 						Logger.LogWarning(string.Format("Dynamic Parameter Variable '{0}' Encountered...", name), "Variable", this );
 					}
 					#endif

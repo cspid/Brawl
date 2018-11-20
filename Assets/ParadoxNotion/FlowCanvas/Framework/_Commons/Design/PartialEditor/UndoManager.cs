@@ -23,7 +23,7 @@ namespace ParadoxNotion.Design{
 
 			var e = Event.current;
 			if (
-				((e.type == EventType.MouseDown || e.type == EventType.MouseUp) && e.button == 0) ||
+				(e.type == EventType.MouseDown) ||
 				(e.type == EventType.KeyDown) ||
 				(e.type == EventType.DragPerform) ||
 				(e.type == EventType.ExecuteCommand)
@@ -39,7 +39,7 @@ namespace ParadoxNotion.Design{
 				return;
 			}
 
-			if ( GUI.changed ){
+			if ( GUI.changed /*||	Event.current.type == EventType.MouseUp*/ ){
 				EditorUtility.SetDirty(target);
 			}
 		}

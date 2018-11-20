@@ -10,7 +10,7 @@ namespace NodeCanvas.Framework {
 		float elapsedTime {get;}
 		Object contextObject{get;}
 		void SendTaskOwnerDefaults();
-		void SendEvent(EventData eventData);
+		void SendEvent(EventData eventData, object sender);
 		void RecordUndo(string name);
 	}
 }

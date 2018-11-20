@@ -18,8 +18,8 @@ namespace NodeCanvas.Editor {
 		private static List<Logger.Message> messages;
 		private static Dictionary<LogType, ConsoleStyle> styleMap;
 		private static Dictionary<Graph, List<Logger.Message>> graphsMap;
+		
 		private static GUIStyle _labelStyle;
-		private static GUIStyle _logTypeFilterStyle;
 		private static GUIStyle labelStyle{
 			get
 			{
@@ -31,6 +31,7 @@ namespace NodeCanvas.Editor {
 			}
 		}
 
+		private static GUIStyle _logTypeFilterStyle;
 		private static GUIStyle logTypeFilterStyle{
 			get
 			{
@@ -65,7 +66,8 @@ namespace NodeCanvas.Editor {
 			Logger.AddListener(OnLogMessageReceived);
 			messages = new List<Logger.Message>();
 			graphsMap = new Dictionary<Graph, List<Logger.Message>>();
-			styleMap = new Dictionary<LogType, ConsoleStyle>{
+			styleMap = new Dictionary<LogType, ConsoleStyle>
+			{
 				{LogType.Log,		new ConsoleStyle(Icons.infoIcon, "eeeeee")},
 				{LogType.Warning,	new ConsoleStyle(Icons.warningIcon, "f6ff00")},
 				{LogType.Error,		new ConsoleStyle(Icons.errorIcon, "db3b3b")},
@@ -84,8 +86,7 @@ namespace NodeCanvas.Editor {
 		void OnEnable(){
 			current = this;
 			willRepaint = true;
-	        var canvasIcon = (Texture)Resources.Load("CanvasIcon");
-			titleContent = new GUIContent(canvasIcon);
+			titleContent = new GUIContent(StyleSheet.canvasIcon);
 			RefreshTitle();
 		}
 
@@ -139,6 +140,7 @@ namespace NodeCanvas.Editor {
 			return false;
 		}
 
+		//...
 		void Update(){
 			if (willRepaint){
 				willRepaint = false;
@@ -152,15 +154,15 @@ namespace NodeCanvas.Editor {
 			var e = Event.current;
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
 			GUILayout.Space(4);
-			var ascending = NCPrefs.consoleLogOrder == NCPrefs.ConsoleLogOrder.Ascending;
+			var ascending = Prefs.consoleLogOrder == Prefs.ConsoleLogOrder.Ascending;
 			var newValue = GUILayout.Toggle(ascending, new GUIContent(ascending? "▲" : "▼"), "label", GUILayout.Width(14));
-			if (ascending != newValue){ NCPrefs.consoleLogOrder = newValue? NCPrefs.ConsoleLogOrder.Ascending : NCPrefs.ConsoleLogOrder.Descending; }
+			if (ascending != newValue){ Prefs.consoleLogOrder = newValue? Prefs.ConsoleLogOrder.Ascending : Prefs.ConsoleLogOrder.Descending; }
 			GUILayout.Space(2);
-			NCPrefs.consoleLogInfo = GUILayout.Toggle(NCPrefs.consoleLogInfo, new GUIContent(Icons.infoIcon), logTypeFilterStyle, GUILayout.Width(20));
+			Prefs.consoleLogInfo = GUILayout.Toggle(Prefs.consoleLogInfo, new GUIContent(Icons.infoIcon), logTypeFilterStyle, GUILayout.Width(20));
 			GUILayout.Space(2);
-			NCPrefs.consoleLogWarning = GUILayout.Toggle(NCPrefs.consoleLogWarning, new GUIContent(Icons.warningIcon), logTypeFilterStyle, GUILayout.Width(20));
+			Prefs.consoleLogWarning = GUILayout.Toggle(Prefs.consoleLogWarning, new GUIContent(Icons.warningIcon), logTypeFilterStyle, GUILayout.Width(20));
 			GUILayout.Space(2);
-			NCPrefs.consoleLogError = GUILayout.Toggle(NCPrefs.consoleLogError, new GUIContent(Icons.errorIcon), logTypeFilterStyle, GUILayout.Width(20));
+			Prefs.consoleLogError = GUILayout.Toggle(Prefs.consoleLogError, new GUIContent(Icons.errorIcon), logTypeFilterStyle, GUILayout.Width(20));
 
 			GUILayout.FlexibleSpace();
 			if (GUILayout.Button("Clear", EditorStyles.toolbarButton, GUILayout.Width(70))){
@@ -216,9 +218,9 @@ namespace NodeCanvas.Editor {
 
 		//...
 		static bool IsFiltered(LogType type){
-			if (type == LogType.Log && !NCPrefs.consoleLogInfo) return true;
-			if (type == LogType.Warning && !NCPrefs.consoleLogWarning) return true;
-			if (type == LogType.Error && !NCPrefs.consoleLogError) return true;
+			if (type == LogType.Log && !Prefs.consoleLogInfo) return true;
+			if (type == LogType.Warning && !Prefs.consoleLogWarning) return true;
+			if (type == LogType.Error && !Prefs.consoleLogError) return true;
 			return false;
 		}
 

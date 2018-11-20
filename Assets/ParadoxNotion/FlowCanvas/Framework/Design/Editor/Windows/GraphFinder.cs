@@ -1,20 +1,18 @@
 ﻿#if UNITY_EDITOR
 
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using ParadoxNotion;
 using ParadoxNotion.Design;
 using NodeCanvas.Framework;
 
-namespace NodeCanvas.Editor{
+namespace NodeCanvas.Editor {
 
-	public class GraphFinder : EditorWindow {
+    public class GraphFinder : EditorWindow {
 
-		private static Hierarchy.Element graphElement;
+		private static HierarchyTree.Element graphElement;
+		private static HierarchyTree.Element lastHoverElement;
 		private static string search;
-		private static Hierarchy.Element lastHoverElement;
 		private static Vector2 scrollPos;
 		private static bool willRepaint;
 		private static int indent;
@@ -30,8 +28,7 @@ namespace NodeCanvas.Editor{
 
 		//...
 		void OnEnable(){
-	        var canvasIcon = (Texture)Resources.Load("CanvasIcon");
-			titleContent = new GUIContent("Finder", canvasIcon);
+			titleContent = new GUIContent("Finder", StyleSheet.canvasIcon);
 
 			wantsMouseMove = true;
 			wantsMouseEnterLeaveWindow = true;
@@ -109,11 +106,11 @@ namespace NodeCanvas.Editor{
 				RemoveNotification();
 			}
 
-			EditorGUILayout.HelpBox("A *flat* structure of the graph, including nodes, connections, tasks and parameters.\nThis is not a hierarchical tree representation of the graph.\nUse this utility window to quickly search, find and jump focus to the related element.", MessageType.Info);
+			EditorGUILayout.HelpBox("A 'flat' structure of the graph, including nodes, connections, tasks and parameters.\nThis is not a hierarchical tree representation of the graph.\nUse this utility window to quickly search, find and jump focus to the related element.", MessageType.Info);
 
 			GUILayout.BeginHorizontal();
 			search = EditorUtils.SearchField(search);
-			NCPrefs.finderShowTypeNames = EditorGUILayout.ToggleLeft("Show Type Names", NCPrefs.finderShowTypeNames, GUILayout.Width(130));
+			Prefs.finderShowTypeNames = EditorGUILayout.ToggleLeft("Show Type Names", Prefs.finderShowTypeNames, GUILayout.Width(130));
 			GUILayout.EndHorizontal();
 
 			if (graphElement == null){
@@ -136,7 +133,7 @@ namespace NodeCanvas.Editor{
 		}
 
 		//...
-		void DoElement(Hierarchy.Element element, Rect parentElementRect = default(Rect)){
+		void DoElement(HierarchyTree.Element element, Rect parentElementRect = default(Rect)){
 			
 			if (element.children == null){ return; }
 
@@ -166,7 +163,7 @@ namespace NodeCanvas.Editor{
 					GUI.color = Color.white;
 
 
-					var displayText = string.Format("<b>{0}</b>{1}", toString, NCPrefs.finderShowTypeNames? " (" + typeName + ")" : string.Empty );
+					var displayText = string.Format("<b>{0}</b>{1}", toString, Prefs.finderShowTypeNames? " (" + typeName + ")" : string.Empty );
 					GUILayout.Label( string.Format("<size=9>{0}</size>", displayText) );
 					GUILayout.EndHorizontal();
 
@@ -230,13 +227,13 @@ namespace NodeCanvas.Editor{
 		}
 
 		///Ping element. User hover.
-		void PingElement(Hierarchy.Element e){
+		void PingElement(HierarchyTree.Element e){
 			var element = e.GetFirstParentReferenceOfType<IGraphElement>();
 			EditorApplication.delayCall += ()=> GraphEditor.PingElement(element);
 		}
 
 		///Focus element. This also Pings it. User click.
-		void FocusElement(Hierarchy.Element e){
+		void FocusElement(HierarchyTree.Element e){
 			var element = e.GetFirstParentReferenceOfType<IGraphElement>();
 			EditorApplication.delayCall += ()=> GraphEditor.FocusElement(element, true);
 		}

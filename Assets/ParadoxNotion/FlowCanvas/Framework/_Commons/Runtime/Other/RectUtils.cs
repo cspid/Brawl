@@ -46,7 +46,17 @@ namespace ParadoxNotion{
 
 		///Expands rect by margin
 		public static Rect ExpandBy(this Rect rect, float margin){
-			return Rect.MinMaxRect(rect.xMin-margin, rect.yMin-margin, rect.xMax+margin, rect.yMax+margin);
+			return rect.ExpandBy(margin, margin);
+		}
+
+		///Expands rect by x-y margin
+		public static Rect ExpandBy(this Rect rect, float xMargin, float yMargin){
+			return rect.ExpandBy(xMargin, yMargin, xMargin, yMargin);
+		}
+
+		///Expands rect by x-y margin
+		public static Rect ExpandBy(this Rect rect, float left, float top, float right, float bottom){
+			return Rect.MinMaxRect(rect.xMin-left, rect.yMin-top, rect.xMax+right, rect.yMax+bottom);
 		}
 
 		//Transforms rect from one container to another container rect
@@ -56,6 +66,14 @@ namespace ParadoxNotion{
 			result.xMax = Mathf.Lerp(newContainer.xMin, newContainer.xMax, Mathf.InverseLerp(oldContainer.xMin, oldContainer.xMax, rect.xMax));
 			result.yMin = Mathf.Lerp(newContainer.yMin, newContainer.yMax, Mathf.InverseLerp(oldContainer.yMin, oldContainer.yMax, rect.yMin));
 			result.yMax = Mathf.Lerp(newContainer.yMin, newContainer.yMax, Mathf.InverseLerp(oldContainer.yMin, oldContainer.yMax, rect.yMax));
+			return result;
+		}
+
+		//Transforms vector from one container to another container rect
+		public static Vector2 TransformSpace(this Vector2 vector, Rect oldContainer, Rect newContainer){
+			var result = new Vector2();
+			result.x = Mathf.Lerp(newContainer.xMin, newContainer.xMax, Mathf.InverseLerp(oldContainer.xMin, oldContainer.xMax, vector.x));
+			result.y = Mathf.Lerp(newContainer.yMin, newContainer.yMax, Mathf.InverseLerp(oldContainer.yMin, oldContainer.yMax, vector.y));
 			return result;
 		}
 	}

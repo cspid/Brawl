@@ -1,4 +1,4 @@
-﻿namespace NodeCanvas {
+﻿namespace NodeCanvas.Framework {
 
 	/// Core Execution Status enumeration
 	public enum Status

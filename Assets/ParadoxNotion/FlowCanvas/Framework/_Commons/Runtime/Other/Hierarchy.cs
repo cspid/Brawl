@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 namespace ParadoxNotion {
 
-	public class Hierarchy {
+    public class HierarchyTree {
 
 		///A simple general purpose hierarchical element wrapper.
 		public class Element {

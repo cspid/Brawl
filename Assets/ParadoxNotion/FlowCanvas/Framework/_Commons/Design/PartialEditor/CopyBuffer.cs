@@ -1,15 +1,13 @@
 ﻿#if UNITY_EDITOR
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using ParadoxNotion.Serialization;
 
-namespace ParadoxNotion.Design{
+namespace ParadoxNotion.Design {
 
-	///A very simple pool to handle Copy/Pasting
-	public static class CopyBuffer {
+    ///A very simple pool to handle Copy/Pasting
+    public static class CopyBuffer {
 
 		private static Dictionary<Type, object> cachedCopies = new Dictionary<Type, object>();
 

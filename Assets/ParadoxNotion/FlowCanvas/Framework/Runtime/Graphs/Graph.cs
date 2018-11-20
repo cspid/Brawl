@@ -49,7 +49,11 @@ namespace NodeCanvas.Framework{
 		///----------------------------------------------------------------------------------------------
 
 		///----------------------------------------------------------------------------------------------
-		protected void OnEnable(){ Validate(); }
+		protected void OnEnable(){
+			if (hasDeserialized){
+				Validate();
+			}
+		}
 		protected void OnDisable(){}
 		protected void OnDestroy(){}
 		protected void OnValidate(){}
@@ -166,9 +170,13 @@ namespace NodeCanvas.Framework{
 			this._translation     = data.translation;
 			this._zoomFactor      = data.zoomFactor;
 			this._nodes           = data.nodes;
-			this._primeNode       = data.primeNode;
 			this._canvasGroups    = data.canvasGroups;
 			this._localBlackboard = data.localBlackboard;
+
+			var first = data.nodes.FirstOrDefault();
+			if (first != null && first.allowAsPrime){
+				this._primeNode = first;
+			}
 
 			//IMPORTANT: Validate should be called in all deserialize cases outside of Unity's 'OnAfterDeserialize',
 			//like for example when loading from json, or manualy calling this outside of OnAfterDeserialize.
@@ -227,6 +235,7 @@ namespace NodeCanvas.Framework{
 			var json = this.Serialize(false, target._objectReferences);
 			target.Deserialize( json, true, this._objectReferences );
 		}
+
 
 		///Validate the graph and it's nodes. Also called from OnEnable callback.
 		public void Validate(){
@@ -482,8 +491,8 @@ namespace NodeCanvas.Framework{
 						linkPair.Key.Duplicate(newSource, newTarget);
 					} else {
 						var newConnection = JSONSerializer.Clone<Connection>(linkPair.Key);
-						newConnection.SetSource(newSource, false);
-						newConnection.SetTarget(newTarget, false);
+						newConnection.SetSource(newSource);
+						newConnection.SetTarget(newTarget);
 					}
 				}
 			}
@@ -510,6 +519,11 @@ namespace NodeCanvas.Framework{
 			return newNodes;
 		}
 
+		///See UpdateReferences
+		public void UpdateReferencesFromOwner(GraphOwner owner){
+			UpdateReferences(owner, owner != null? owner.blackboard : null);
+		}
+
 		///Update the Agent/Component references: Setting the system to the tasks and blackboard to BBParameters.
 		///This is done when the graph starts and in the editor for convenience.
 		public void UpdateReferences(Component newAgent, IBlackboard newBlackboard){
@@ -523,11 +537,6 @@ namespace NodeCanvas.Framework{
 			}
 		}
 		
-		///See UpdateReferences
-		public void UpdateReferencesFromOwner(GraphOwner owner){
-			UpdateReferences(owner, owner != null? owner.blackboard : null);
-		}
-
 		///Update all graph node's BBFields for current Blackboard.
 		void UpdateNodeBBFields(){
 			for (var i = 0; i < allNodes.Count; i++){
@@ -546,27 +555,39 @@ namespace NodeCanvas.Framework{
 		///Update the IDs of the nodes in the graph. Is automatically called whenever a change happens in the graph by the adding, removing, connecting etc.
 		public void UpdateNodeIDs(bool alsoReorderList){
 
-			var lastID = -1;
-
-			//start from prime
-			if (primeNode != null){
-				lastID = primeNode.AssignIDToGraph(lastID);
+			if (allNodes.Count == 0){
+				return;
 			}
 
-			//set the rest starting from nodes without parent(s)
+			var lastID = -1;
+			var parsed = new Node[allNodes.Count];
+
+			if (primeNode != null){
+				lastID = AssignNodeID(primeNode, lastID, ref parsed);
+			}
+
 			var tempList = allNodes.OrderBy(n => n.inConnections.Count != 0).OrderBy(n => n.priority * -1).ToList();
 			for (var i = 0; i < tempList.Count; i++){
-				lastID = tempList[i].AssignIDToGraph(lastID);
-			}
-
-			//reset the check
-			for (var i = 0; i < allNodes.Count; i++){
-				allNodes[i].ResetRecursion();
+				lastID = AssignNodeID(tempList[i], lastID, ref parsed);
 			}
 
 			if (alsoReorderList){
-				allNodes = allNodes.OrderBy(node => node.ID).ToList();
+				allNodes = parsed.ToList();
 			}
+		}
+
+		//Used above to assign a node's ID and list order
+		int AssignNodeID(Node node, int lastID, ref Node[] parsed){
+			if ( !parsed.Contains(node) ){
+				lastID ++;
+				node.ID = lastID;
+				parsed[lastID] = node;
+				for (var i = 0; i < node.outConnections.Count; i++){
+					var targetNode = node.outConnections[i].targetNode;
+					lastID = AssignNodeID(targetNode, lastID, ref parsed);
+				}
+			}
+			return lastID;
 		}
 
 
@@ -703,6 +724,8 @@ namespace NodeCanvas.Framework{
 			// UnityEngine.Profiling.Profiler.EndSample();
 		}
 
+		///----------------------------------------------------------------------------------------------
+
 		///Override for graph specific stuff to run when the graph is started
 		virtual protected void OnGraphStarted(){}
 		///Override for graph specific per frame logic. Called every frame if the graph is running
@@ -714,38 +737,35 @@ namespace NodeCanvas.Framework{
 		///Override for graph stuff to run when the graph is unpause
 		virtual protected void OnGraphUnpaused(){}
 
+		///----------------------------------------------------------------------------------------------
 
 		///Sends an OnCustomEvent message to the tasks that needs them. Tasks subscribe to events using [EventReceiver] attribute.
-		public void SendEvent(string name){SendEvent(new EventData(name));}
-		public void SendEvent<T>(string name, T value){SendEvent(new EventData<T>(name, value));}
-		public void SendEvent(EventData eventData){
+		public void SendEvent(EventData eventData, object sender){
 			if (!isRunning || eventData == null || agent == null){
 				return;
 			}
 
 			#if UNITY_EDITOR
-			if (NodeCanvas.Editor.NCPrefs.logEvents){
+			if (NodeCanvas.Editor.Prefs.logEvents){
 				Logger.Log(string.Format("Event '{0}' Send to '{1}'", eventData.name, agent.gameObject.name), "Event", agent);
 			}
 			#endif
 
 			var router = agent.GetComponent<MessageRouter>();
 			if (router != null){
-				router.Dispatch("OnCustomEvent", eventData);
-				router.Dispatch(eventData.name, eventData.value);
+				router.Dispatch("OnCustomEvent", eventData, sender);
+				router.Dispatch(eventData.name, eventData.value, sender);
 			}
 			//if router is null, it means that nothing has subscribed to any event, thus we dont care.
 		}
 
 		///Sends an event to all Running graphs
-		public static void SendGlobalEvent(string name){ SendGlobalEvent(new EventData(name)); }
-		public static void SendGlobalEvent<T>(string name, T value){ SendGlobalEvent(new EventData<T>(name, value)); }
-		public static void SendGlobalEvent(EventData eventData){
+		public static void SendGlobalEvent(EventData eventData, object sender){
 			var send = new List<GameObject>();
 			foreach(var graph in runningGraphs.ToArray()){ //ToArray because an event may result in a graph stopping and thus messing with the enumeration.
 				if (graph.agent != null && !send.Contains(graph.agent.gameObject)){
 					send.Add(graph.agent.gameObject);
-					graph.SendEvent(eventData);
+					graph.SendEvent(eventData, sender);
 				}
 			}
 		}
@@ -882,8 +902,8 @@ namespace NodeCanvas.Framework{
 
 		///Returns a structure of the graphs that includes Nodes, Connections, Tasks and BBParameters,
 		///but with nodes elements all being root to the graph (instead of respective parent connections).
-		virtual public Hierarchy.Element GetFlatGraphHierarchy(){
-			var root = new Hierarchy.Element(this);
+		virtual public HierarchyTree.Element GetFlatGraphHierarchy(){
+			var root = new HierarchyTree.Element(this);
 			int lastID = 0;
 			for (var i = 0; i < allNodes.Count; i++){
 				root.AddChild( GetTreeNodeElement(allNodes[i], false, ref lastID) );
@@ -893,8 +913,8 @@ namespace NodeCanvas.Framework{
 		
 		///Returns a structure of the graphs that includes Nodes, Connections, Tasks and BBParameters,
 		///but where node elements are parent to their respetive connections. Only possible for tree-like graphs.
-		public Hierarchy.Element GetFullGraphHierarchy(){
-			var root = new Hierarchy.Element(this);
+		public HierarchyTree.Element GetFullGraphHierarchy(){
+			var root = new HierarchyTree.Element(this);
 			int lastID = 0;
 			if (primeNode != null){
 				root.AddChild( GetTreeNodeElement(primeNode, true, ref lastID) );
@@ -909,7 +929,7 @@ namespace NodeCanvas.Framework{
 		}
 
 		///Used above. Returns a node hierarchy element optionaly along with all it's children recursively
-		Hierarchy.Element GetTreeNodeElement(Node node, bool recurse, ref int lastID){
+		HierarchyTree.Element GetTreeNodeElement(Node node, bool recurse, ref int lastID){
 			var nodeElement = GetTaskAndParametersStructureInTarget( node );
 			for (var i = 0; i < node.outConnections.Count; i++){
 				var connectionElement = GetTaskAndParametersStructureInTarget( node.outConnections[i] );
@@ -926,8 +946,8 @@ namespace NodeCanvas.Framework{
 		}
 
 		///Returns an element that includes tasks and parameters for target object recursively
-		public static Hierarchy.Element GetTaskAndParametersStructureInTarget(object obj){
-			var parentElement = new Hierarchy.Element(obj);
+		public static HierarchyTree.Element GetTaskAndParametersStructureInTarget(object obj){
+			var parentElement = new HierarchyTree.Element(obj);
 			var resultObjects = new List<object>();
 			if (obj is ITaskAssignable && (obj as ITaskAssignable).task != null){
 				resultObjects.Add( (obj as ITaskAssignable).task );
@@ -1064,7 +1084,9 @@ namespace NodeCanvas.Framework{
 				}
 			}
 
-			NodeCanvas.Editor.GraphEditorUtility.activeElement = null;
+			if (NodeCanvas.Editor.GraphEditorUtility.activeElement == node){
+				NodeCanvas.Editor.GraphEditorUtility.activeElement = null;
+			}
 			#endif
 
 			//callback
@@ -1087,29 +1109,23 @@ namespace NodeCanvas.Framework{
 			allNodes.Remove(node);
 
 			if (node == primeNode){
-				primeNode = GetNodeWithID( primeNode.ID );
+				primeNode = GetNodeWithID( primeNode.ID + 1 );
 			}
 
 			UpdateNodeIDs(false);
 		}
 		
-		///Connect two nodes together to the next available port of the source node
-		public Connection ConnectNodes(Node sourceNode, Node targetNode){
-			return ConnectNodes(sourceNode, targetNode, sourceNode.outConnections.Count);
-		}
+		///Connect two nodes together to a specific port index of the source and target node.
+		///Leave index at -1 to add at the end of the list.
+		public Connection ConnectNodes(Node sourceNode, Node targetNode, int sourceIndex = -1, int targetIndex = -1){
 
-		///Connect two nodes together to a specific port index of the source node
-		public Connection ConnectNodes(Node sourceNode, Node targetNode, int indexToInsert){
-
-			if (targetNode.IsNewConnectionAllowed(sourceNode) == false){
+			if (Node.IsNewConnectionAllowed(sourceNode, targetNode) == false){
 				return null;
 			}
 
 			RecordUndo("New Connection");
 
-			var newConnection = Connection.Create(sourceNode, targetNode, indexToInsert);
-			sourceNode.OnChildConnected(indexToInsert);
-			targetNode.OnParentConnected(targetNode.inConnections.IndexOf(newConnection));
+			var newConnection = Connection.Create(sourceNode, targetNode, sourceIndex, targetIndex);
 
 			UpdateNodeIDs(false);
 			return newConnection;
@@ -1136,7 +1152,9 @@ namespace NodeCanvas.Framework{
 			connection.targetNode.inConnections.Remove(connection);
 
 			#if UNITY_EDITOR
-			NodeCanvas.Editor.GraphEditorUtility.activeElement = null;
+			if (NodeCanvas.Editor.GraphEditorUtility.activeElement == connection){
+				NodeCanvas.Editor.GraphEditorUtility.activeElement = null;
+			}
 			#endif
 
 			UpdateNodeIDs(false);

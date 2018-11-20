@@ -159,8 +159,7 @@ namespace NodeCanvas.Editor{
 		//...
 		void OnEnable(){
 			current = this;
-	        var canvasIcon = (Texture)Resources.Load("CanvasIcon");
-	        titleContent = new GUIContent("Canvas", canvasIcon);
+	        titleContent = new GUIContent("Canvas", StyleSheet.canvasIcon);
 
 			willRepaint = true;
 			fullDrawPass = true;
@@ -210,7 +209,9 @@ namespace NodeCanvas.Editor{
 		//Listen to Logs and return true if handled
 		bool OnLogMessageReceived(Logger.Message msg){
 			if (msg.tag == "Editor"){
-				ShowNotification(new GUIContent(msg.text));
+				if (!string.IsNullOrEmpty(msg.text)){
+					ShowNotification(new GUIContent(msg.text));
+				}
 				return true;
 			}
 			return false;
@@ -263,7 +264,7 @@ namespace NodeCanvas.Editor{
 	    public static GraphEditor OpenWindow(Graph newGraph, GraphOwner owner, IBlackboard blackboard) {
 			var window = GetWindow<GraphEditor>();
 			SetReferences(newGraph, owner, blackboard);
-            if (NCPrefs.showWelcomeWindow && !Application.isPlaying && welcomeShown == false){
+            if (Prefs.showWelcomeWindow && !Application.isPlaying && welcomeShown == false){
                 welcomeShown = true;
 				var graphType = newGraph != null? newGraph.GetType() : null;
                 WelcomeWindow.ShowWindow(graphType);
@@ -297,7 +298,7 @@ namespace NodeCanvas.Editor{
 		//Change viewing graph based on Graph or GraphOwner
 		void OnSelectionChange(){
 			
-			if (NCPrefs.isLocked){
+			if (Prefs.isLocked){
 				return;
 			}
 
@@ -326,9 +327,9 @@ namespace NodeCanvas.Editor{
 			lastUpdateTime = currentTime;
 
 			var needsRepaint = false;
-			if (UpdateSmoothPan(deltaTime)) needsRepaint = true;
-			if (UpdateSmoothZoom(deltaTime)) needsRepaint = true;
-			if (UpdatePing(deltaTime)) needsRepaint = true;
+			needsRepaint |= UpdateSmoothPan(deltaTime);
+			needsRepaint |= UpdateSmoothZoom(deltaTime);
+			needsRepaint |= UpdatePing(deltaTime);
 			if (needsRepaint){
 				Repaint();
 			}
@@ -361,6 +362,7 @@ namespace NodeCanvas.Editor{
 
 			var targetZoom = (float)smoothZoomFactor;
 			if ( Mathf.Abs(targetZoom - zoomFactor) < 0.00001f ){
+				// if (zoomFactor == 1){ ResetNodesSizing(currentGraph); }
 				smoothZoomFactor = null;
 				return false;
 			}
@@ -473,11 +475,11 @@ namespace NodeCanvas.Editor{
 
 			//initialize rects
 			canvasRect = Rect.MinMaxRect(5, TOP_MARGIN, position.width -5, position.height - BOTTOM_MARGIN);
-			minimapRect = Rect.MinMaxRect(canvasRect.xMax - NCPrefs.minimapSize.x, canvasRect.yMax - NCPrefs.minimapSize.y, canvasRect.xMax - 2, canvasRect.yMax - 2);
+			minimapRect = Rect.MinMaxRect(canvasRect.xMax - Prefs.minimapSize.x, canvasRect.yMax - Prefs.minimapSize.y, canvasRect.xMax - 2, canvasRect.yMax - 2);
 			var originalCanvasRect = canvasRect;
 
 			//canvas background
-			GUI.Box(canvasRect, string.Empty, CanvasStyles.canvasBG);
+			GUI.Box(canvasRect, string.Empty, StyleSheet.canvasBG);
 			//background grid
 			DrawGrid(canvasRect, pan, zoomFactor);
 			//handle minimap
@@ -521,7 +523,6 @@ namespace NodeCanvas.Editor{
 					EndWindows();
 
 					DrawPings();
-
 
 					DoCanvasRectSelection(viewRect);
 				}
@@ -575,7 +576,7 @@ namespace NodeCanvas.Editor{
 				var r = new Rect(0, 0, 120, 10);
 				r.center = new Vector2(screenWidth/2, screenHeight - BOTTOM_MARGIN - 50);
 				GUI.color = Color.green;
-				GUI.Box(r, "PlayMode Active", CanvasStyles.windowHighlight);
+				GUI.Box(r, "PlayMode Active", StyleSheet.windowHighlight);
 			}
 
 			//hack for quick popups
@@ -589,7 +590,7 @@ namespace NodeCanvas.Editor{
 			GraphEditorUtility.InvokePostGUI();
 
 			//closure
-			GUI.Box(originalCanvasRect, string.Empty, CanvasStyles.canvasBorders);
+			GUI.Box(originalCanvasRect, string.Empty, StyleSheet.canvasBorders);
 			GUI.color = Color.white;
 			GUI.backgroundColor = Color.white;
 		}
@@ -640,7 +641,7 @@ namespace NodeCanvas.Editor{
 			}
 
 			if (graph.primeNode != null){
-				GUI.Box(new Rect(graph.primeNode.rect.x, graph.primeNode.rect.y - 20, graph.primeNode.rect.width, 20), "<b>START</b>", CanvasStyles.box);
+				GUI.Box(new Rect(graph.primeNode.rect.x, graph.primeNode.rect.y - 20, graph.primeNode.rect.width, 20), "<b>START</b>", StyleSheet.box);
 			}
 		}
 	
@@ -714,11 +715,13 @@ namespace NodeCanvas.Editor{
 
 		///Zoom with center position
 		static void ZoomAt(Vector2 center, float delta){
+			if (zoomFactor == 1 && delta > 0) return;
 			var pinPoint = (center - pan)/zoomFactor;
 			var newZ = zoomFactor;
 			newZ += delta;
 			newZ = Mathf.Clamp(newZ, 0.25f, 1f);
 			smoothZoomFactor = newZ;
+
 			var a = (pinPoint * newZ) + pan;
 			var b = center;
 			var diff = b - a;
@@ -786,16 +789,16 @@ namespace NodeCanvas.Editor{
 				var rect = RectUtils.GetBoundRect(selectionStartPos, e.mousePosition);
 				if (rect.width > 5 && rect.height > 5){
 					GUI.color = new Color(0.5f,0.5f,1,0.3f);
-					GUI.Box(rect, string.Empty, CanvasStyles.box);
+					GUI.Box(rect, string.Empty, StyleSheet.box);
 					foreach (var node in currentGraph.allNodes){
 						if (rect.Overlaps(node.rect) && !node.isHidden){
 							var highlightRect = node.rect;
-							GUI.Box(highlightRect, string.Empty, CanvasStyles.windowHighlight);
+							GUI.Box(highlightRect, string.Empty, StyleSheet.windowHighlight);
 						}
 					}
 					if (rect.width > 50 && rect.height > 50){
 						GUI.color = new Color(1,1,1, e.control? 0.6f : 0.15f);
-						GUI.Label(new Rect( e.mousePosition.x + 16, e.mousePosition.y, 120, 22 ), "<i>+ control for group</i>", CanvasStyles.label);
+						GUI.Label(new Rect( e.mousePosition.x + 16, e.mousePosition.y, 120, 22 ), "<i>+ control for group</i>", StyleSheet.labelOnCanvas);
 					}
 				}
 			}
@@ -843,7 +846,7 @@ namespace NodeCanvas.Editor{
 			}
 
 			//if something selected the inspector panel shows on top of the breadcrub. If external inspector active it doesnt matter, so draw anyway.
-			if (GraphEditorUtility.activeElement != null && !NCPrefs.useExternalInspector){
+			if (GraphEditorUtility.activeElement != null && !Prefs.useExternalInspector){
 				return;
 			}
 
@@ -857,17 +860,17 @@ namespace NodeCanvas.Editor{
 			if (root.currentChildGraph == null){
 
 				if (root.agent == null && root.blackboard == null){
-					GUILayout.Label(string.Format("<b><size=22>{0} {1}</size></b>", root.name, graphInfo), CanvasStyles.label);	
+					GUILayout.Label(string.Format("<b><size=22>{0} {1}</size></b>", root.name, graphInfo), StyleSheet.labelOnCanvas);	
 				} else {
 					var agentInfo = root.agent != null? root.agent.gameObject.name : "No Agent";
 					var bbInfo = root.blackboard != null? root.blackboard.name : "No Blackboard";
-					GUILayout.Label(string.Format("<b><size=22>{0} {1}</size></b>\n<size=10>{2} | {3}</size>", root.name, graphInfo, agentInfo, bbInfo), CanvasStyles.label);
+					GUILayout.Label(string.Format("<b><size=22>{0} {1}</size></b>\n<size=10>{2} | {3}</size>", root.name, graphInfo, agentInfo, bbInfo), StyleSheet.labelOnCanvas);
 				}
 
 			} else {
 
 				GUILayout.BeginHorizontal();
-				GUILayout.Label("⤴ " + root.name, CanvasStyles.button);
+				GUILayout.Label("⤴ " + root.name, StyleSheet.button);
 				if (e.type == EventType.MouseUp && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition)){
 					root.currentChildGraph = null;
 				}
@@ -892,7 +895,7 @@ namespace NodeCanvas.Editor{
 				var group = currentGraph.canvasGroups[i];
 				var handleRect = new Rect( group.rect.x, group.rect.y, group.rect.width, 25);
 				var scaleRectBR = new Rect( group.rect.xMax - 20, group.rect.yMax -20, 20, 20);
-				var style = CanvasStyles.editorPanel;
+				var style = StyleSheet.editorPanel;
 				
 				GUI.color = EditorGUIUtility.isProSkin? new Color(1,1,1,0.4f) : new Color(0.5f,0.5f,0.5f,0.3f);
 				GUI.Box(group.rect, string.Empty, style);
@@ -903,7 +906,7 @@ namespace NodeCanvas.Editor{
 				}
 
 				GUI.color = Color.white;
-				GUI.Box(new Rect(scaleRectBR.x+10, scaleRectBR.y+10, 6,6), string.Empty, CanvasStyles.scaleArrow );
+				GUI.Box(new Rect(scaleRectBR.x+10, scaleRectBR.y+10, 6,6), string.Empty, StyleSheet.scaleArrowBR );
 				
 				var size = 14 / zoomFactor;
 				var name = string.Format("<size={0}>{1}</size>", size, group.name);
@@ -1002,7 +1005,7 @@ namespace NodeCanvas.Editor{
 			for (var i = 0; i < graph.allNodes.Count; i++){
 				var node = graph.allNodes[i];
 				var pos = node.position;
-				if (NCPrefs.doSnap){
+				if (Prefs.doSnap){
 					pos.x = Mathf.Round(pos.x / GRID_SIZE) * GRID_SIZE;
 					pos.y = Mathf.Round(pos.y / GRID_SIZE) * GRID_SIZE;
 				} else {
@@ -1012,7 +1015,6 @@ namespace NodeCanvas.Editor{
 				node.position = pos;
 			}
 		}
-
 
 		//before nodes for handling events
 		static void HandleMinimapEvents(Rect container){
@@ -1027,70 +1029,112 @@ namespace NodeCanvas.Editor{
 				isResizingMinimap = false;
 			}
 			if (isResizingMinimap && e.type == EventType.MouseDrag){
-				NCPrefs.minimapSize -= e.delta;
+				Prefs.minimapSize -= e.delta;
 				e.Use();
 			}
 
-			EditorGUIUtility.AddCursorRect(container, MouseCursor.MoveArrow);
-			if (e.type == EventType.MouseDown && e.button == 0 && container.Contains(e.mousePosition)){
-				var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
-				var norm = Rect.PointToNormalized(container, e.mousePosition);
-				var pos = Rect.NormalizedToPoint(finalBound, norm);
-				FocusPosition(pos);
-				isDraggingMinimap = true;
-				e.Use();
-			}
-			if (e.rawType == EventType.MouseUp){
-				isDraggingMinimap = false;
-			}
-			if (isDraggingMinimap && e.type == EventType.MouseDrag){
-				var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
-				var norm = Rect.PointToNormalized(container, e.mousePosition);
-				var pos = Rect.NormalizedToPoint(finalBound, norm);
-				FocusPosition(pos);
-				e.Use();
+			if (Prefs.minimapSize != Prefs.MINIMAP_MIN_SIZE){
+				EditorGUIUtility.AddCursorRect(container, MouseCursor.MoveArrow);
+				if (e.type == EventType.MouseDown && e.button == 0 && container.Contains(e.mousePosition)){
+					var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
+					var norm = Rect.PointToNormalized(container, e.mousePosition);
+					var pos = Rect.NormalizedToPoint(finalBound, norm);
+					FocusPosition(pos);
+					isDraggingMinimap = true;
+					e.Use();
+				}
+				if (e.rawType == EventType.MouseUp){
+					isDraggingMinimap = false;
+				}
+				if (isDraggingMinimap && e.type == EventType.MouseDrag){
+					var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
+					var norm = Rect.PointToNormalized(container, e.mousePosition);
+					var pos = Rect.NormalizedToPoint(finalBound, norm);
+					FocusPosition(pos);
+					e.Use();
+				}
 			}
 		}
 
 		///after nodes, a cool minimap
 		static void DrawMinimap(Rect container){
+
 			GUI.color = new Color(0.5f,0.5f,0.5f,0.85f);
-			GUI.Box(container, string.Empty, CanvasStyles.windowShadow);
-			GUI.Box(container, currentGraph.allNodes.Count > 0? string.Empty : "Minimap", CanvasStyles.box);
-			var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
-			var lensRect = viewRect.TransformSpace(finalBound, container);
-			GUI.color = new Color(1,1,1,0.8f);
-			GUI.Box(lensRect, string.Empty, CanvasStyles.box);
-			GUI.color = Color.white;
-			finalBound = finalBound.ExpandBy(25);
-			if (currentGraph.canvasGroups != null){
-				for (var i = 0; i < currentGraph.canvasGroups.Count; i++){
-					var group = currentGraph.canvasGroups[i];
-					var blipRect = group.rect.TransformSpace(finalBound, container);
-					var blipHeaderRect = Rect.MinMaxRect(blipRect.xMin, blipRect.yMin, blipRect.xMax, blipRect.yMin + 2);
-					var color = group.color != default(Color)? group.color : Color.gray;
-					color.a = 0.5f;
-					GUI.color = color;
-					GUI.DrawTexture(blipRect, Texture2D.whiteTexture);
-					GUI.DrawTexture(blipHeaderRect, Texture2D.whiteTexture);
-					GUI.color = Color.white;					
+			GUI.Box(container, string.Empty, StyleSheet.windowShadow);
+			GUI.Box(container, currentGraph.allNodes.Count > 0? string.Empty : "Minimap", StyleSheet.box);
+
+			if (Prefs.minimapSize != Prefs.MINIMAP_MIN_SIZE){
+
+				var finalBound = ResolveMinimapBoundRect(currentGraph, viewRect);
+				var lensRect = viewRect.TransformSpace(finalBound, container);
+				GUI.color = new Color(1,1,1,0.8f);
+				GUI.Box(lensRect, string.Empty, StyleSheet.box);
+				GUI.color = Color.white;
+				finalBound = finalBound.ExpandBy(25);
+
+				if (currentGraph.canvasGroups != null){
+					for (var i = 0; i < currentGraph.canvasGroups.Count; i++){
+						var group = currentGraph.canvasGroups[i];
+						var blipRect = group.rect.TransformSpace(finalBound, container);
+						var blipHeaderRect = Rect.MinMaxRect(blipRect.xMin, blipRect.yMin, blipRect.xMax, blipRect.yMin + 2);
+						var color = group.color != default(Color)? group.color : Color.gray;
+						color.a = 0.5f;
+						GUI.color = color;
+						GUI.DrawTexture(blipRect, Texture2D.whiteTexture);
+						GUI.DrawTexture(blipHeaderRect, Texture2D.whiteTexture);
+						GUI.color = Color.white;					
+					}
 				}
-			}
-			if (currentGraph.allNodes != null){
-				for (var i = 0; i < currentGraph.allNodes.Count; i++){
-					var node = currentGraph.allNodes[i];
-					if (node.isHidden){ continue; }
-					var blipRect = node.rect.TransformSpace(finalBound, container);
-					var color = node.nodeColor != default(Color)? node.nodeColor : Color.grey;
-					GUI.color = color;
-					GUI.DrawTexture(blipRect, Texture2D.whiteTexture);
+
+				if (pingValue >= 0){
+					GUI.color = Color.white.WithAlpha(pingValue);
+					var pingBlipRect = pingRect.TransformSpace(finalBound, container);
+					GUI.DrawTexture(pingBlipRect.ExpandBy(2), Texture2D.whiteTexture);
 					GUI.color = Color.white;
+				}
+
+				if (currentGraph.allNodes != null){
+
+					for (var i = 0; i < currentGraph.allNodes.Count; i++){
+						var node = currentGraph.allNodes[i];
+						for (var j = 0; j < node.outConnections.Count; j++){
+							var connection = node.outConnections[j];
+							var snp = connection.sourceNode.rect.center.TransformSpace(finalBound, container);
+							var tnp = connection.targetNode.rect.center.TransformSpace(finalBound, container);
+							var sp = connection.startRect.center.TransformSpace(finalBound, container);
+							var tp = connection.endRect.center.TransformSpace(finalBound, container);
+							Handles.color = Application.isPlaying? StyleSheet.GetStatusColor(connection.status) : Colors.Grey(0.35f);
+							Handles.DrawAAPolyLine(snp, sp, tp, tnp);
+							// Handles.DrawAAPolyLine(snp, tnp);
+							Handles.color = Color.white;
+						}
+					}
+
+					for (var i = 0; i < currentGraph.allNodes.Count; i++){
+						var node = currentGraph.allNodes[i];
+						if (node.isHidden){ continue; }
+						var blipRect = node.rect.TransformSpace(finalBound, container);
+						
+						if (Application.isPlaying && node.status != Status.Resting){
+							GUI.color = StyleSheet.GetStatusColor(node.status);
+							GUI.DrawTexture(blipRect.ExpandBy(2), Texture2D.whiteTexture);
+						}
+
+						if (GraphEditorUtility.activeElement == node || GraphEditorUtility.activeElements.Contains(node)){
+							GUI.color = Color.white;
+							GUI.DrawTexture(blipRect.ExpandBy(2), Texture2D.whiteTexture);
+						}
+
+						GUI.color = node.nodeColor != default(Color)? node.nodeColor : Color.grey;
+						GUI.DrawTexture(blipRect, Texture2D.whiteTexture);
+						GUI.color = Color.white;
+					}
 				}
 			}
 
 			var resizeRect = new Rect(container.x, container.y, 6, 6);
 			GUI.color = Color.white;
-			GUI.Box(resizeRect, string.Empty, CanvasStyles.scaleArrowTL);
+			GUI.Box(resizeRect, string.Empty, StyleSheet.scaleArrowTL);
 		}
 
 		//resolves the bounds used in the minimap
@@ -1131,7 +1175,7 @@ namespace NodeCanvas.Editor{
 			var msg = GraphConsole.GetFirstMessageForGraph(currentGraph);
 			if (msg.IsValid()){
 				rect.xMin += 2;
-				GUI.Label(rect, GraphConsole.GetFormatedGUIContentForMessage(msg), CanvasStyles.label);
+				GUI.Label(rect, GraphConsole.GetFormatedGUIContentForMessage(msg), StyleSheet.labelOnCanvas);
 				EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
 				if (GUI.Button(rect, string.Empty, GUIStyle.none)){
 					GraphConsole.ShowWindow();

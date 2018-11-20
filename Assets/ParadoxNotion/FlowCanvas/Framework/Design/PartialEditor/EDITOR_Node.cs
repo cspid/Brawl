@@ -1,6 +1,5 @@
 ﻿#if UNITY_EDITOR
 
-using System.Collections.Generic;
 using System.Linq;
 using NodeCanvas.Editor;
 using ParadoxNotion;
@@ -9,9 +8,9 @@ using UnityEditor;
 using UnityEngine;
 
 
-namespace NodeCanvas.Framework{
+namespace NodeCanvas.Framework {
 
-	partial class Node{
+    partial class Node{
 
 		//Class for the nodeports GUI
 		class GUIPort{
@@ -25,10 +24,21 @@ namespace NodeCanvas.Framework{
 			}
 		}
 
+		//Verbose level
+		public enum VerboseLevel
+		{
+			Compact = 0,
+			Partial = 1,
+			Full    = 2,
+		}
+
 		[SerializeField]
 		private bool _collapsed;
 		[SerializeField]
 		private Color _color;
+		[SerializeField]
+		private VerboseLevel _verboseLevel = VerboseLevel.Full;
+
 
 		private Vector2 size = minSize;
 		private object _icon{get;set;}
@@ -44,15 +54,6 @@ namespace NodeCanvas.Framework{
 		private static int dragDropMisses{get;set;}
 
 		readonly public static Vector2 minSize = new Vector2(100, 20);
-		readonly public static Dictionary<Status, Color> statusColors = new Dictionary<Status, Color>()
-		{
-			{Status.Failure, new Color(1.0f, 0.3f, 0.3f)},
-			{Status.Success, new Color(0.4f, 0.7f, 0.2f)},
-			{Status.Running, Color.yellow},
-			{Status.Resting, new Color(0.7f, 0.7f, 1f, 0.8f)},
-			{Status.Error, Color.red},
-			{Status.Optional, Color.grey}
-		};
 
 
 		//This is to be able to work with rects which is easier in many cases.
@@ -91,6 +92,12 @@ namespace NodeCanvas.Framework{
 			set {_color = value;}
 		}
 
+		///EDITOR! Verbose level of the node GUI
+		public VerboseLevel verboseLevel{
+			get {return _verboseLevel;}
+			set {_verboseLevel = value;}
+		}
+
 		///EDITOR! is the node hidden due to parent has children collapsed or is hidden itself?
 		public bool isHidden {
 			get
@@ -116,7 +123,7 @@ namespace NodeCanvas.Framework{
 
 		//Is NC in icon mode && node has an icon?
 		private bool showIcon{
-			get {return NCPrefs.showIcons && icon != null;}
+			get {return Prefs.showIcons && icon != null;}
 		}
 
 		//The icon of the node
@@ -130,7 +137,7 @@ namespace NodeCanvas.Framework{
 					}
 					if (_icon == null){
 						var iconAtt = this.GetType().RTGetAttribute<IconAttribute>(true);
-						_icon = iconAtt != null? UserTypePrefs.GetTypeIcon(iconAtt, this) : null;
+						_icon = iconAtt != null? TypePrefs.GetTypeIcon(iconAtt, this) : null;
 					}
 					if (_icon == null){
 						_icon = new object();
@@ -157,7 +164,7 @@ namespace NodeCanvas.Framework{
 					var cAtt = this.GetType().RTGetAttribute<ColorAttribute>(true);
 					if (cAtt != null){
 						hasColorAttribute = true;
-						colorAttributeColor = Colors.HexToColor(cAtt.hexColor);
+						colorAttributeColor = ColorUtils.HexToColor(cAtt.hexColor);
 						hexColor = cAtt.hexColor;
 					}
 				}
@@ -189,6 +196,34 @@ namespace NodeCanvas.Framework{
 			}
 		}
 
+		///----------------------------------------------------------------------------------------------
+
+		///Editor. A position relative to the node
+		protected Vector2 GetRelativeNodePosition(Alignment2x2 alignment, float margin = 0){
+			switch(alignment)
+			{
+				case(Alignment2x2.Default):
+				return rect.center;
+
+				case(Alignment2x2.Left):
+				return new Vector2(rect.xMin - margin, rect.center.y);
+
+				case(Alignment2x2.Right):
+				return new Vector2(rect.xMax + margin, rect.center.y);
+
+				case(Alignment2x2.Top):
+				return new Vector2(rect.center.x, rect.yMin - margin);
+
+				case(Alignment2x2.Bottom):
+				return new Vector2(rect.center.x, rect.yMax + margin);
+			}
+
+			return rect.center;
+		}
+
+
+		///----------------------------------------------------------------------------------------------
+
 		///Get connection information node wise, to show on top of the connection
 		virtual public string GetConnectionInfo(int index){	return null; }
 		///Extra inspector controls for the provided OUT connection
@@ -201,7 +236,7 @@ namespace NodeCanvas.Framework{
 				return;
 			}
 
-			if (fullDrawPass || drawCanvas.Overlaps(node.rect)){
+			if (fullDrawPass || drawCanvas.Overlaps(node.rect) || GraphEditorUtility.activeNode == node){
 				DrawNodeWindow(node, canvasMousePos, zoomFactor);
 				DrawNodeTag(node);
 				DrawNodeComments(node);
@@ -218,30 +253,30 @@ namespace NodeCanvas.Framework{
 			if (node.collapsed){
 				var r = new Rect(node.rect.x, (node.rect.yMax + 10), node.rect.width, 20);
 				EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
-				if (GUI.Button(r, "COLLAPSED", CanvasStyles.box)){
+				if (GUI.Button(r, "COLLAPSED", StyleSheet.box)){
 					node.collapsed = false;
 				}
 			}
 
 			GUI.color = node.isActive? Color.white : new Color(0.9f, 0.9f, 0.9f, 0.8f);
 			GUI.color = GraphEditorUtility.activeElement == node? new Color(0.9f, 0.9f, 1) : GUI.color;
-			node.rect = GUILayout.Window(node.ID, node.rect, (ID)=>{ NodeWindowGUI(node, ID); }, string.Empty, CanvasStyles.window);
+			//Remark: using MaxWidth and MaxHeght makes GUILayout window contract width and height
+			node.rect = GUILayout.Window(node.ID, node.rect, (ID)=>{ NodeWindowGUI(node, ID); }, string.Empty, StyleSheet.window, GUILayout.MaxHeight(minSize.y), GUILayout.MaxWidth(minSize.x) );
 
 
 			GUI.color = Color.white;
-			GUI.Box(node.rect, string.Empty, CanvasStyles.windowShadow);
-			GUI.color = new Color(1,1,1,0.5f);
-			GUI.Box(new Rect(node.rect.x+6, node.rect.y+6, node.rect.width, node.rect.height), string.Empty, CanvasStyles.windowShadow);
+			GUI.Box(node.rect, string.Empty, StyleSheet.windowShadow);
+
 
 			if (Application.isPlaying && node.status != Status.Resting){
-				GUI.color = statusColors[node.status];
-				GUI.Box(node.rect, string.Empty, CanvasStyles.windowHighlight);
+				GUI.color = StyleSheet.GetStatusColor(node.status);
+				GUI.Box(node.rect, string.Empty, StyleSheet.windowHighlight);
 				
 			} else {
 				
 				if (node.isSelected){
-					GUI.color = statusColors[Status.Resting];
-					GUI.Box(node.rect, string.Empty, CanvasStyles.windowHighlight);
+					GUI.color = StyleSheet.GetStatusColor(Status.Resting);
+					GUI.Box(node.rect, string.Empty, StyleSheet.windowHighlight);
 				}
 			}
 
@@ -273,11 +308,9 @@ namespace NodeCanvas.Framework{
 		//The title name or icon of the node
 		static void ShowHeader(Node node){
 
-			//alternative idea where header gets a colored background instead of coloring the text
+			//text
 			if (!node.showIcon || node.iconAlignment != Alignment2x2.Default){
 				if (node.name != null){
-					var finalTitle = node is IGraphAssignable? string.Format("{{ {0} }}", node.name) : node.name;
-					var image = node.showIcon && node.iconAlignment == Alignment2x2.Left? node.icon : null;
 					string hex;
 					var isProSkin = EditorGUIUtility.isProSkin;
 					if (node.nodeColor != default(Color)){
@@ -289,18 +322,22 @@ namespace NodeCanvas.Framework{
 					if (node.nodeColor != default(Color)){
 						GUI.color = node.nodeColor;
 						var headerHeight = node.rect.height <= 35? 35 : 27;
-						GUI.Box(new Rect(0,0,node.rect.width, headerHeight), string.Empty, CanvasStyles.windowHeader);
+						GUI.Box(new Rect(0, 0, node.rect.width, headerHeight), string.Empty, StyleSheet.windowHeader);
 						GUI.color = Color.white;
 					}
-
-					var text = string.Format("<b><size=12><color=#{0}>{1}{2}</color></size></b>", hex, (image != null? " " : ""), finalTitle);
-					var content = new GUIContent(text, image, node.description);
-					GUILayout.Label(content, CanvasStyles.nodeTitle, GUILayout.MaxHeight(23));
+					
+					var finalTitle = node is IGraphAssignable? string.Format("{{ {0} }}", node.name) : node.name;
+					var text = string.Format("<b><size=12><color=#{0}>{1}</color></size></b>", hex, finalTitle);
+					var image = node.showIcon && node.iconAlignment == Alignment2x2.Left? node.icon : null;
+					//tooltip is anoying when in compact modes
+					var tooltip = node.verboseLevel == VerboseLevel.Full? node.description : null;
+					var content = new GUIContent(text, image, tooltip);
+					GUILayout.Label(content, StyleSheet.windowTitle, GUILayout.MaxHeight(23));
 				}
 			}
-
 			
-			if (node.showIcon && (node.iconAlignment == Alignment2x2.Default || node.iconAlignment == Alignment2x2.Bottom) ){ //prefs in icon mode AND has icon
+			//icon
+			if (node.showIcon && (node.iconAlignment == Alignment2x2.Default || node.iconAlignment == Alignment2x2.Bottom) ){
 				GUI.color = node.nodeColor.a > 0.2f? node.nodeColor : Color.white;
 				if (!EditorGUIUtility.isProSkin){
 					var assignable = node as ITaskAssignable;
@@ -321,7 +358,7 @@ namespace NodeCanvas.Framework{
 				}
 				
 				GUI.backgroundColor = Color.clear;
-				GUILayout.Box(node.icon, CanvasStyles.box, GUILayout.MaxHeight(32));
+				GUILayout.Box(node.icon, StyleSheet.box, GUILayout.MaxHeight(32));
 				GUI.backgroundColor = Color.white;
 				GUI.color = Color.white;
 			}
@@ -389,17 +426,18 @@ namespace NodeCanvas.Framework{
 		//Shows the icons relative to the current node status
 		static void ShowStatusIcons(Node node){
 	        if (Application.isPlaying && node.status != Status.Resting){
-		        var markRect = new Rect(5, 5, 15, 15);
+		        var markRect = new Rect(5, 5, 16, 16);
 		        if (node.status == Status.Success){
-		        	GUI.color = statusColors[Status.Success];
-		        	GUI.Box(markRect, string.Empty, CanvasStyles.checkMark);
+		        	GUI.color = StyleSheet.GetStatusColor(Status.Success);
+		        	GUI.DrawTexture(markRect, StyleSheet.statusSuccess);
 
 		        } else if (node.status == Status.Running){
-		        	GUI.Box(markRect, string.Empty, CanvasStyles.clockMark);
+					GUI.color = StyleSheet.GetStatusColor(Status.Running);
+		        	GUI.DrawTexture(markRect, StyleSheet.statusRunning);
 
 		        } else if (node.status == Status.Failure){
-		        	GUI.color = statusColors[Status.Failure];
-		        	GUI.Box(markRect, string.Empty, CanvasStyles.xMark);
+		        	GUI.color = StyleSheet.GetStatusColor(Status.Failure);
+		        	GUI.DrawTexture(markRect, StyleSheet.statusFailure);
 		        }
 		    }
 		}
@@ -422,12 +460,10 @@ namespace NodeCanvas.Framework{
 			node.OnNodeGUI();
 
 			if (node is ITaskAssignable){
+				GUILayout.BeginVertical(Styles.roundedBox);
 				var task = (node as ITaskAssignable).task;
-				if (task == null){
-					GUILayout.Label("No Task");
-				} else {
-					GUILayout.Label(NCPrefs.showTaskSummary? task.summaryInfo : string.Format("<b>{0}</b>", task.name));
-				}
+				GUILayout.Label( task != null? task.summaryInfo : "No Task" );
+				GUILayout.EndVertical();
 			}
 
 			GUI.skin.label.alignment = TextAnchor.UpperLeft;
@@ -435,7 +471,7 @@ namespace NodeCanvas.Framework{
 
 		//Handles and shows the right click mouse button for the node context menu
 		static void HandleContextMenu(Node node, Event e){
-			var isContextClick = (e.type == EventType.MouseUp && e.button == 1) || ( /*e.control && e.type == EventType.MouseUp ||*/ e.type == EventType.ContextClick);
+			var isContextClick = (e.type == EventType.MouseUp && e.button == 1) || (e.type == EventType.ContextClick);
 		    if (GraphEditorUtility.allowClick && isContextClick){
 		    	GenericMenu menu;
 		    	if (GraphEditorUtility.activeElements.Count > 1){
@@ -554,9 +590,9 @@ namespace NodeCanvas.Framework{
 	    		}
 
 	    		if (node.nodeIsPressed){
-		    		var hierarchicalMove = NCPrefs.hierarchicalMove != e.shift;
+		    		var hierarchicalMove = Prefs.hierarchicalMove != e.shift;
 		    		//snap to grid
-			    	if (!hierarchicalMove && NCPrefs.doSnap && GraphEditorUtility.activeElements.Count == 0){
+			    	if (!hierarchicalMove && Prefs.doSnap && GraphEditorUtility.activeElements.Count == 0){
 			    		node.position = new Vector2( Mathf.Round(node.position.x/15) * 15, Mathf.Round(node.position.y/15) * 15 );
 					}		
 
@@ -576,12 +612,12 @@ namespace NodeCanvas.Framework{
 		//The comments of the node sitting next or bottom of it
 		static void DrawNodeComments(Node node){
 
-			if ( !NCPrefs.showComments || string.IsNullOrEmpty(node.comments)){
+			if ( !Prefs.showComments || string.IsNullOrEmpty(node.comments)){
 				return;
 			}
 
 			var commentsRect = new Rect();
-			var style = CanvasStyles.textArea;
+			var style = StyleSheet.commentsBox;
 			var size = style.CalcSize(new GUIContent(node.comments));
 
 			if (node.commentsAlignment == Alignment2x2.Top){
@@ -602,7 +638,7 @@ namespace NodeCanvas.Framework{
 
 			GUI.color = new Color(1,1,1,0.6f);
 			GUI.backgroundColor = new Color(1f,1f,1f,0.2f);
-			GUI.Box(commentsRect, node.comments, CanvasStyles.textArea);
+			GUI.Box(commentsRect, node.comments, StyleSheet.commentsBox);
 			GUI.backgroundColor = Color.white;
 			GUI.color = Color.white;
 		}
@@ -610,9 +646,9 @@ namespace NodeCanvas.Framework{
 		//Shows the tag label on the left of the node if it is tagged
 		static void DrawNodeTag(Node node){
 			if (!string.IsNullOrEmpty(node.tag)){
-				var size = CanvasStyles.label.CalcSize(new GUIContent(node.tag));
+				var size = StyleSheet.labelOnCanvas.CalcSize(new GUIContent(node.tag));
 				var tagRect = new Rect(node.rect.x - size.x -10, node.rect.y, size.x, size.y);
-				GUI.Label(tagRect, node.tag, CanvasStyles.label);
+				GUI.Label(tagRect, node.tag, StyleSheet.labelOnCanvas);
 				tagRect.width = Icons.tagIcon.width;
 				tagRect.height = Icons.tagIcon.height;
 				tagRect.y += tagRect.height + 5;
@@ -623,10 +659,10 @@ namespace NodeCanvas.Framework{
 
 		//Show the Node ID, mostly for debug purposes
 		static void DrawNodeID(Node node){
-			if (NCPrefs.showNodeIDs){
+			if (Prefs.showNodeIDs){
 				var rect = new Rect(node.rect.x, node.rect.y - 18, node.rect.width, 18);
 				GUI.color = Color.grey;
-				GUI.Label(rect, string.Format("<size=9>#{0}</size>", node.ID.ToString() ), CanvasStyles.label );
+				GUI.Label(rect, string.Format("<size=9>#{0}</size>", node.ID.ToString() ), StyleSheet.labelOnCanvas );
 				GUI.color = Color.white;
 			}
 		}
@@ -647,7 +683,7 @@ namespace NodeCanvas.Framework{
 
 			UndoManager.CheckUndo(node.graph, "Node Inspector");
 
-			if (NCPrefs.showNodeInfo){
+			if (Prefs.showNodeInfo){
 				GUI.backgroundColor = Colors.lightBlue;
 				EditorGUILayout.HelpBox(node.description, MessageType.None);
 				GUI.backgroundColor = Color.white;
@@ -780,6 +816,29 @@ namespace NodeCanvas.Framework{
 		///Editor. Override to add more entries to the right click context menu of the node
 		virtual protected GenericMenu OnContextMenu(GenericMenu menu){ return menu; }
 
+		///Editor. Connection Relink has started. Handle effect
+		virtual public void OnActiveRelinkStart(Connection connection){ }
+		
+		///Editor. Connection Relink has ended. Handle effect
+		virtual public void OnActiveRelinkEnd(Connection connection){
+			for (var i = 0; i < graph.allNodes.Count; i++){
+				var otherNode = graph.allNodes[i];
+				if ( otherNode != connection.targetNode && otherNode != connection.sourceNode && otherNode.rect.Contains( Event.current.mousePosition ) ){
+					if (connection.relinkState == Connection.RelinkState.Target){
+						if (Node.IsNewConnectionAllowed(connection.sourceNode, otherNode, connection)){
+							connection.SetTarget(otherNode);
+						}
+					}
+					if (connection.relinkState == Connection.RelinkState.Source){
+						if (Node.IsNewConnectionAllowed(otherNode, connection.targetNode, connection)){
+							connection.SetSource(otherNode);
+						}
+					}
+					return;
+				}
+			}
+		}
+
 		///Editor. Draw the connections line from this node, to all of its children. This is the default hierarchical tree style. Override in each system's base node class.
 		virtual protected void DrawNodeConnections(Rect drawCanvas, bool fullDrawPass, Vector2 canvasMousePos, float zoomFactor){
 
@@ -828,14 +887,14 @@ namespace NodeCanvas.Framework{
 			if (fullDrawPass || drawCanvas.Overlaps(rect)){
 
 				var nodeOutputBox = new Rect(rect.x, rect.yMax - 4, rect.width, 12);
-				GUI.Box(nodeOutputBox, string.Empty, CanvasStyles.nodePortContainer);
+				GUI.Box(nodeOutputBox, string.Empty, StyleSheet.nodePortContainer);
 
 				//draw the ports
 				if (outConnections.Count < maxOutConnections || maxOutConnections == -1){
 					for (var i = 0; i < outConnections.Count + 1; i++){
 						var portRect = new Rect(0, 0, 10, 10);
 						portRect.center = new Vector2(((rect.width / (outConnections.Count + 1)) * (i + 0.5f)) + rect.xMin, rect.yMax + 6);
-						GUI.Box(portRect, string.Empty, CanvasStyles.nodePortEmpty);
+						GUI.Box(portRect, string.Empty, StyleSheet.nodePortEmpty);
 
 						if (collapsed){
 							continue;
@@ -857,11 +916,10 @@ namespace NodeCanvas.Framework{
 
 			//draw the new drag&drop connection line
 			if (clickedPort != null && clickedPort.parent == this){
-				var yDiff = (clickedPort.pos.y - e.mousePosition.y) * 0.5f;
-				yDiff = e.mousePosition.y > clickedPort.pos.y? -yDiff : yDiff;
-				var tangA = new Vector2(0, yDiff);
-				var tangB = tangA * -1;
-				Handles.DrawBezier(clickedPort.pos, e.mousePosition, clickedPort.pos + tangA , e.mousePosition + tangB, new Color(0.5f,0.5f,0.8f,0.8f), null, 3);
+				var tangA = default(Vector2);
+				var tangB = default(Vector2);
+				ParadoxNotion.CurveUtils.ResolveTangents(clickedPort.pos, e.mousePosition, 0.5f, PlanarDirection.Vertical, out tangA, out tangB);
+				Handles.DrawBezier(clickedPort.pos, e.mousePosition, clickedPort.pos + tangA , e.mousePosition + tangB, StyleSheet.GetStatusColor(Status.Resting).WithAlpha(0.8f), null, 3);
 			}
 
 
@@ -883,7 +941,7 @@ namespace NodeCanvas.Framework{
 					var boundRect = RectUtils.GetBoundRect(sourcePortRect, targetPortRect);
 					if (fullDrawPass || drawCanvas.Overlaps(boundRect)){
 
-						GUI.Box(sourcePortRect, string.Empty, CanvasStyles.nodePortConnected);
+						GUI.Box(sourcePortRect, string.Empty, StyleSheet.nodePortConnected);
 				
 						if (collapsed || connection.targetNode.isHidden){
 							continue;

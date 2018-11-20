@@ -110,7 +110,7 @@ namespace NodeCanvas.Editor {
 
             GUILayout.Space(5);
 
-            NCPrefs.showWelcomeWindow = EditorGUILayout.ToggleLeft("Show On Startup", NCPrefs.showWelcomeWindow);
+            Prefs.showWelcomeWindow = EditorGUILayout.ToggleLeft("Show On Startup", Prefs.showWelcomeWindow);
 
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();

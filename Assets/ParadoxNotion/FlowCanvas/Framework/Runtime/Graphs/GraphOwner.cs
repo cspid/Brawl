@@ -9,11 +9,6 @@ namespace NodeCanvas.Framework
     /// A component that is used to control a Graph in respects to the gameobject attached to
 	abstract public class GraphOwner : MonoBehaviour {
 
-		[SerializeField]
-		private string boundGraphSerialization;
-		[SerializeField]
-		private List<UnityEngine.Object> boundGraphObjectReferences;
-
 		public enum EnableAction{
 			EnableBehaviour,
 			DoNothing
@@ -25,6 +20,11 @@ namespace NodeCanvas.Framework
 			DoNothing
 		}
 
+		[SerializeField]
+		private string boundGraphSerialization;
+		[SerializeField]
+		private List<UnityEngine.Object> boundGraphObjectReferences;
+
 		[HideInInspector] ///What will happen OnEnable
 		public EnableAction enableAction = EnableAction.EnableBehaviour;
 		[HideInInspector] ///What will happen OnDisable
@@ -34,9 +34,12 @@ namespace NodeCanvas.Framework
 		public static System.Action<GraphOwner> onOwnerBehaviourStateChange;
 
 		private Dictionary<Graph, Graph> instances = new Dictionary<Graph, Graph>();
-		private bool awakeCalled = false;
+		private bool initialized = false;
+		private bool startCalled = false;
 
 		private static bool isQuiting;
+
+		///----------------------------------------------------------------------------------------------
 
 		///The graph assigned
 		abstract public Graph graph{get;set;}
@@ -60,6 +63,8 @@ namespace NodeCanvas.Framework
 			get {return graph != null? graph.elapsedTime : 0;}
 		}
 
+		///----------------------------------------------------------------------------------------------
+
 		//Gets the instance graph for this owner of the provided graph
 		protected Graph GetInstance(Graph originalGraph){
 
@@ -67,10 +72,12 @@ namespace NodeCanvas.Framework
 				return null;
 			}
 
-			//in editor the instance is always the original
+			//in editor the instance is always the original!
 			#if UNITY_EDITOR
-			if (!Application.isPlaying){
-				return originalGraph;
+			{
+				if (!Application.isPlaying){
+					return originalGraph;
+				}
 			}
 			#endif
 
@@ -141,33 +148,27 @@ namespace NodeCanvas.Framework
 			StartBehaviour();
 		}
 
-		///Send an event through the graph (To be used with CheckEvent for example). Same as .graph.SendEvent
-		public void SendEvent(string eventName){ SendEvent(new EventData(eventName));}
-		public void SendEvent<T>(string eventName, T eventValue) {SendEvent(new EventData<T>(eventName, eventValue)); }
-		public void SendEvent(EventData eventData){
+		///Shortcut to SendEvent(EventData). Note that this overload does not take a sender argument and thus sender will be null.
+		public void SendEvent(string eventName){ SendEvent(new EventData(eventName), null); }
+		///Shortcut to SendEvent(EventData). Note that this overload does not take a sender argument and thus sender will be null.
+		public void SendEvent<T>(string eventName, T eventValue){ SendEvent(new EventData<T>(eventName, eventValue), null); }
+		
+		///Send an event through the graph (Same as .graph.SendEvent)
+		public void SendEvent(EventData eventData, object sender){
 			if (graph != null){
-				graph.SendEvent(eventData);
+				graph.SendEvent(eventData, sender);
 			}
 		}
 
-		///Thats the same as calling the static Graph.SendGlobalEvent
-		public static void SendGlobalEvent(string eventName){
-			Graph.SendGlobalEvent( new EventData(eventName) );
-		}
-		///Thats the same as calling the static Graph.SendGlobalEvent
-		public static void SendGlobalEvent<T>(string eventName, T eventValue){
-			Graph.SendGlobalEvent( new EventData<T>(eventName, eventValue) );
-		}
+		///Initialize bound or reference graph. This is called in Awake automatically,
+		///but it's public so that you can call this manually to pre-initialize when gameobject is deactive, if required.
+		public void Initialize(){
 
-		///Instantiate and deserialize the bound graph, or instantiate the asset graph reference.
-		///This is public so that you can call this manually to pre-initialize when gameobject is deactive, if required.
-		public void Awake(){
-			
-			if (awakeCalled){
+			if (initialized){
 				return;
 			}
 
-			awakeCalled = true;
+			initialized = true;
 
 			//Bound
 			if ( !string.IsNullOrEmpty(boundGraphSerialization) ){
@@ -187,11 +188,26 @@ namespace NodeCanvas.Framework
 			graph = GetInstance(graph);
 		}
 
+		///----------------------------------------------------------------------------------------------
+
+		///Instantiate and deserialize the bound graph, or instantiate the asset graph reference.
+		protected void Awake(){
+			Initialize();
+		}
+
 		//handle enable behaviour setting
 		protected void OnEnable(){
-			if (enableAction == EnableAction.EnableBehaviour){
+			if (startCalled && enableAction == EnableAction.EnableBehaviour){
 				StartBehaviour();
 			}
+		}
+
+		//we want the first time behaviour starts to be OnStart rather than OnEnable
+		protected void Start(){
+			startCalled = true;
+			if (enableAction == EnableAction.EnableBehaviour){
+				StartBehaviour();
+			}			
 		}
 
 		//handle disable behaviour setting
@@ -231,6 +247,8 @@ namespace NodeCanvas.Framework
 		protected void OnApplicationQuit(){
 			isQuiting = true;
 		}
+
+		///----------------------------------------------------------------------------------------------
 
 
 
@@ -291,9 +309,9 @@ namespace NodeCanvas.Framework
 
 				boundGraphInstance.Deserialize(boundGraphSerialization, false, boundGraphObjectReferences);
 				(boundGraphInstance as UnityEngine.Object).name = this.name + " " + graphType.Name;
+				boundGraphInstance.UpdateReferencesFromOwner(this);
 				boundGraphInstance.Validate();
 				boundGraphSerialization = boundGraphInstance.Serialize(false, boundGraphObjectReferences);
-				boundGraphInstance.UpdateReferencesFromOwner(this);
 
 				graph = boundGraphInstance;
 			}
@@ -315,6 +333,7 @@ namespace NodeCanvas.Framework
 				boundGraphObjectReferences = null;
 				return;
 			}
+			
 			target.Serialize();
 			target.GetSerializationData(out boundGraphSerialization, out boundGraphObjectReferences);
 			Validate(); //validate to handle bound graph instance

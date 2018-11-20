@@ -3,17 +3,19 @@
 using UnityEditor;
 using ParadoxNotion.Serialization;
 
-namespace NodeCanvas.Editor{
+namespace NodeCanvas.Editor {
 
 	///NC framework preferences
-	public static class NCPrefs {
+	public static partial class Prefs {
+
+		private const string PREFS_KEY_NAME = "NodeCanvas.EditorPreferences";
 
 		[System.Serializable]
-		class SerializedData{
+		partial class SerializedData
+		{
 			public bool showNodeInfo               = true;
 			public bool isLocked                   = false;
 			public bool showIcons                  = true;
-			public ConnectionStyle connectionStyle = ConnectionStyle.Curved;
 			public bool doSnap                     = false;
 			public bool showTaskSummary            = true;
 			public bool showBlackboard             = true;
@@ -35,7 +37,7 @@ namespace NodeCanvas.Editor{
 			public bool consoleLogError            = true;
 			public ConsoleLogOrder consoleLogOrder = ConsoleLogOrder.Ascending;
 
-			public bool finderShowTypeNames		   = true;
+			public bool finderShowTypeNames	       = true;
 
 			public UnityEngine.Vector2 minimapSize = new UnityEngine.Vector2(170, 100);
 		}
@@ -45,7 +47,7 @@ namespace NodeCanvas.Editor{
 			get
 			{
 				if (_data == null){
-					var pref = EditorPrefs.GetString("NodeCanvas.EditorPreferences");
+					var pref = EditorPrefs.GetString(PREFS_KEY_NAME);
 					if (!string.IsNullOrEmpty(pref)){
 						_data = JSONSerializer.Deserialize<SerializedData>(pref);
 					}
@@ -57,15 +59,12 @@ namespace NodeCanvas.Editor{
 			}
 		}
 
-		private static UnityEngine.Vector2 minimapMinSize = new UnityEngine.Vector2(50,30);
-		private static UnityEngine.Vector2 minimapMaxSize = new UnityEngine.Vector2(500,300);
+		///----------------------------------------------------------------------------------------------
 
-		public enum ConnectionStyle
-		{
-			Curved,
-			Stepped,
-			Linear
-		}
+		public readonly static UnityEngine.Vector2 MINIMAP_MIN_SIZE = new UnityEngine.Vector2(50,30);
+		public readonly static UnityEngine.Vector2 MINIMAP_MAX_SIZE = new UnityEngine.Vector2(500,300);
+
+		///----------------------------------------------------------------------------------------------
 
 		public enum ConsoleLogOrder
 		{
@@ -86,11 +85,6 @@ namespace NodeCanvas.Editor{
 		public static bool showIcons{
 			get {return data.showIcons;}
 			set {if (data.showIcons != value){ data.showIcons = value; Save(); } }
-		}
-
-		public static ConnectionStyle connectionStyle{
-			get {return data.connectionStyle;}
-			set {if (data.connectionStyle != value){ data.connectionStyle = value; Save(); } }
 		}
 
 		public static bool doSnap{
@@ -205,22 +199,25 @@ namespace NodeCanvas.Editor{
 			get
 			{
 				var result = data.minimapSize;
-				result = UnityEngine.Vector2.Max(result, minimapMinSize);
-				result = UnityEngine.Vector2.Min(result, minimapMaxSize);
+				result = UnityEngine.Vector2.Max(result, MINIMAP_MIN_SIZE);
+				result = UnityEngine.Vector2.Min(result, MINIMAP_MAX_SIZE);
 				return result;
 			}
 			set
 			{
 				if (data.minimapSize != value){
-					data.minimapSize = UnityEngine.Vector2.Max(value, minimapMinSize);
-					data.minimapSize = UnityEngine.Vector2.Min(value, minimapMaxSize);
+					data.minimapSize = UnityEngine.Vector2.Max(value, MINIMAP_MIN_SIZE);
+					data.minimapSize = UnityEngine.Vector2.Min(value, MINIMAP_MAX_SIZE);
 					Save();
 				}
 			}
 		}
 
+		///----------------------------------------------------------------------------------------------
+
+		//Save the prefs
 		static void Save(){
-			EditorPrefs.SetString("NodeCanvas.EditorPreferences", JSONSerializer.Serialize(typeof(SerializedData), data));
+			EditorPrefs.SetString(PREFS_KEY_NAME, JSONSerializer.Serialize(typeof(SerializedData), data));
 		}
 	}
 }

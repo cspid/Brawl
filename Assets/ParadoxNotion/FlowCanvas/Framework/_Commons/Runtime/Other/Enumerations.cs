@@ -103,6 +103,16 @@
     }
 
     /// <summary>
+    /// Enumeration for planar direction
+    /// </summary>
+    public enum PlanarDirection
+    {
+        Horizontal,
+        Vertical,
+        Auto
+    }
+
+    /// <summary>
     /// Enumeration Alignment 2x2
     /// </summary>
     public enum Alignment2x2

@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+
+using UnityEngine;
 using UnityEditor;
 using NodeCanvas.Framework;
 using ParadoxNotion;
@@ -15,7 +17,7 @@ namespace NodeCanvas.Editor {
 			var owner = graph.agent != null && graph.agent is GraphOwner && (graph.agent as GraphOwner).graph == graph? (GraphOwner)graph.agent : null;
 
 			GUILayout.BeginHorizontal(EditorStyles.toolbar);
-			GUI.backgroundColor = new Color(1f,1f,1f,0.5f);
+			GUI.backgroundColor = Color.white.WithAlpha(0.5f);
 
 			///----------------------------------------------------------------------------------------------
 			///Left side
@@ -33,6 +35,13 @@ namespace NodeCanvas.Editor {
 				GetToolbarMenu_Prefs(graph, owner).ShowAsContext();
 			}
 
+			var customMenu = GetToolbarMenu_Custom(graph, owner);
+			if (customMenu.GetItemCount() > 0){
+				if (GUILayout.Button("More", EditorStyles.toolbarDropDown, GUILayout.Width(50))){
+					customMenu.ShowAsContext();
+				}
+			}
+
 			GUILayout.Space(10);
 
 			if (owner != null && GUILayout.Button("Select Owner", EditorStyles.toolbarButton, GUILayout.Width(80))){
@@ -47,17 +56,19 @@ namespace NodeCanvas.Editor {
 
 			GUILayout.Space(10);
 
-			if (GUILayout.Button("Open Console", EditorStyles.toolbarButton, GUILayout.Width(90))){
-				var type = ReflectionTools.GetType("NodeCanvas.Editor.GraphConsole");
-				var method = type.GetMethod("ShowWindow");
-				method.Invoke(null, null);
+			if (GUILayout.Button(new GUIContent(StyleSheet.log, "Open Graph Console"), EditorStyles.toolbarButton, GUILayout.MaxHeight(12) )){
+				GraphConsole.ShowWindow();
 			}
 
-			if (GUILayout.Button("Open Finder", EditorStyles.toolbarButton, GUILayout.Width(90))){
-				var type = ReflectionTools.GetType("NodeCanvas.Editor.GraphFinder");
-				var method = type.GetMethod("ShowWindow");
-				method.Invoke(null, null);
+			if (GUILayout.Button(new GUIContent(StyleSheet.lens, "Open Graph Finder"), EditorStyles.toolbarButton, GUILayout.MaxHeight(12) )){
+				GraphFinder.ShowWindow();
 			}
+
+			GUILayout.Space(10);
+
+			///----------------------------------------------------------------------------------------------
+
+			graph.CallbackOnGraphEditorToolbar();
 
 			///----------------------------------------------------------------------------------------------
 			///Mid
@@ -96,7 +107,7 @@ namespace NodeCanvas.Editor {
 				}
 			}
 
-			NCPrefs.isLocked = GUILayout.Toggle(NCPrefs.isLocked, "Lock", EditorStyles.toolbarButton);
+			Prefs.isLocked = GUILayout.Toggle(Prefs.isLocked, "Lock", EditorStyles.toolbarButton);
 			GUILayout.EndHorizontal();
 			GUI.backgroundColor = Color.white;
 			GUI.color = Color.white;
@@ -196,29 +207,45 @@ namespace NodeCanvas.Editor {
 		//PREFS MENU
 		static GenericMenu GetToolbarMenu_Prefs(Graph graph, GraphOwner owner){
 			var menu = new GenericMenu();
-			menu.AddItem (new GUIContent ("Show Icons"), NCPrefs.showIcons, ()=>
+			menu.AddItem (new GUIContent ("Show Icons"), Prefs.showIcons, ()=>
 				{
-					NCPrefs.showIcons = !NCPrefs.showIcons;
+					Prefs.showIcons = !Prefs.showIcons;
 					foreach(var node in graph.allNodes){ node.rect = new Rect( node.position.x, node.position.y, Node.minSize.x, Node.minSize.y ); }
 				});
-			menu.AddItem (new GUIContent ("Show Node Help"), NCPrefs.showNodeInfo, ()=> {NCPrefs.showNodeInfo = !NCPrefs.showNodeInfo;});
-			menu.AddItem (new GUIContent ("Show Comments"), NCPrefs.showComments, ()=> {NCPrefs.showComments = !NCPrefs.showComments;});
-			menu.AddItem (new GUIContent ("Show Summary Info"), NCPrefs.showTaskSummary, ()=> {NCPrefs.showTaskSummary = !NCPrefs.showTaskSummary;});
-			menu.AddItem (new GUIContent ("Show Node IDs"), NCPrefs.showNodeIDs, ()=> {NCPrefs.showNodeIDs = !NCPrefs.showNodeIDs;});
-			menu.AddItem (new GUIContent ("Grid Snap"), NCPrefs.doSnap, ()=> {NCPrefs.doSnap = !NCPrefs.doSnap;});
-			menu.AddItem (new GUIContent ("Log Events"), NCPrefs.logEvents, ()=>{ NCPrefs.logEvents = !NCPrefs.logEvents; });
-			menu.AddItem (new GUIContent ("Log Dynamic Parameters Info"), NCPrefs.logDynamicParametersInfo, ()=>{ NCPrefs.logDynamicParametersInfo = !NCPrefs.logDynamicParametersInfo; });
-			menu.AddItem (new GUIContent ("Breakpoints Pause Editor"), NCPrefs.breakpointPauseEditor, ()=> {NCPrefs.breakpointPauseEditor = !NCPrefs.breakpointPauseEditor;});
-			menu.AddItem (new GUIContent ("Show Hierarchy Icons"), NCPrefs.showHierarchyIcons, ()=> {NCPrefs.showHierarchyIcons = !NCPrefs.showHierarchyIcons;});
+			menu.AddItem (new GUIContent ("Show Node Help"), Prefs.showNodeInfo, ()=> {Prefs.showNodeInfo = !Prefs.showNodeInfo;});
+			menu.AddItem (new GUIContent ("Show Comments"), Prefs.showComments, ()=> {Prefs.showComments = !Prefs.showComments;});
+			menu.AddItem (new GUIContent ("Show Summary Info"), Prefs.showTaskSummary, ()=> {Prefs.showTaskSummary = !Prefs.showTaskSummary;});
+			menu.AddItem (new GUIContent ("Show Node IDs"), Prefs.showNodeIDs, ()=> {Prefs.showNodeIDs = !Prefs.showNodeIDs;});
+			menu.AddItem (new GUIContent ("Grid Snap"), Prefs.doSnap, ()=> {Prefs.doSnap = !Prefs.doSnap;});
+			menu.AddItem (new GUIContent ("Log Events"), Prefs.logEvents, ()=>{ Prefs.logEvents = !Prefs.logEvents; });
+			menu.AddItem (new GUIContent ("Log Dynamic Parameters Info"), Prefs.logDynamicParametersInfo, ()=>{ Prefs.logDynamicParametersInfo = !Prefs.logDynamicParametersInfo; });
+			menu.AddItem (new GUIContent ("Breakpoints Pause Editor"), Prefs.breakpointPauseEditor, ()=> {Prefs.breakpointPauseEditor = !Prefs.breakpointPauseEditor;});
+			menu.AddItem (new GUIContent ("Show Hierarchy Icons"), Prefs.showHierarchyIcons, ()=> {Prefs.showHierarchyIcons = !Prefs.showHierarchyIcons;});
 			if (graph.autoSort){
-				menu.AddItem (new GUIContent ("Automatic Hierarchical Move"), NCPrefs.hierarchicalMove, ()=> {NCPrefs.hierarchicalMove = !NCPrefs.hierarchicalMove;});
+				menu.AddItem (new GUIContent ("Automatic Hierarchical Move"), Prefs.hierarchicalMove, ()=> {Prefs.hierarchicalMove = !Prefs.hierarchicalMove;});
 			}
-			menu.AddItem (new GUIContent ("Connection Style/Curved"), NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Curved, ()=> {NCPrefs.connectionStyle = NCPrefs.ConnectionStyle.Curved;});
-			menu.AddItem (new GUIContent ("Connection Style/Stepped"), NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Stepped, ()=> {NCPrefs.connectionStyle = NCPrefs.ConnectionStyle.Stepped;});
-			menu.AddItem (new GUIContent ("Connection Style/Linear"), NCPrefs.connectionStyle == NCPrefs.ConnectionStyle.Linear, ()=> {NCPrefs.connectionStyle = NCPrefs.ConnectionStyle.Linear;});
-			menu.AddItem( new GUIContent ("Open Preferred Types Editor..."), false, ()=>{PreferedTypesEditorWindow.ShowWindow();} );			
+			menu.AddItem( new GUIContent ("Open Preferred Types Editor..."), false, ()=>{TypePrefsEditorWindow.ShowWindow();} );			
 			return menu;
 		}
 
+		//CUSTOM MENU
+		static GenericMenu GetToolbarMenu_Custom(Graph graph, GraphOwner owner){
+			var menu = new GenericMenu();
+			var methods = graph.GetType().RTGetMethods();
+			for (var i = 0; i < methods.Length; i++){
+				var method = methods[i];
+				if (method.GetParameters().Length == 0){
+					var menuAtt = method.RTGetAttribute<ToolbarMenuItemAttribute>(true);
+					if (menuAtt != null){
+						var instance = method.IsStatic? null : graph;
+						menu.AddItem (new GUIContent (menuAtt.path), false, ()=>{ method.Invoke(instance, null); } );
+					}
+				}
+
+			}
+			return menu;
+		}
 	}
 }
+
+#endif

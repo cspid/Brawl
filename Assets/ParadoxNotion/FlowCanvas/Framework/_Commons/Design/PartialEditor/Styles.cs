@@ -30,6 +30,7 @@ namespace ParadoxNotion.Design {
 					_leftLabel = new GUIStyle(GUI.skin.GetStyle("label"));
 					_leftLabel.richText = true;
 					_leftLabel.alignment = TextAnchor.MiddleLeft;
+					_leftLabel.padding.right = 6;
 				}
 				return _leftLabel;
 			}
@@ -43,6 +44,7 @@ namespace ParadoxNotion.Design {
 					_rightLabel = new GUIStyle(GUI.skin.GetStyle("label"));
 					_rightLabel.richText = true;
 					_rightLabel.alignment = TextAnchor.MiddleRight;
+					_rightLabel.padding.left = 6;
 				}
 				return _rightLabel;
 			}
@@ -52,27 +54,27 @@ namespace ParadoxNotion.Design {
 
 		private static GUIStyle _roundedBox;
 		public static GUIStyle roundedBox{
-			get {return _roundedBox?? (_roundedBox = (GUIStyle)"ShurikenEffectBg"); }
+			get {return _roundedBox?? (_roundedBox = new GUIStyle( (GUIStyle)"ShurikenEffectBg") ); }
 		}
 
 		private static GUIStyle _highlightBox;
 		public static GUIStyle highlightBox{
-			get {return _highlightBox?? (_highlightBox = (GUIStyle)"LightmapEditorSelectedHighlight"); }
+			get {return _highlightBox?? (_highlightBox = new GUIStyle( (GUIStyle)"LightmapEditorSelectedHighlight") ); }
 		}
 
 		private static GUIStyle _toolbarSearchField;
 		public static GUIStyle toolbarSearchTextField{
-			get {return _toolbarSearchField?? (_toolbarSearchField = (GUIStyle)"ToolbarSeachTextField"); }
+			get {return _toolbarSearchField?? (_toolbarSearchField = new GUIStyle( (GUIStyle)"ToolbarSeachTextField") ); }
 		}
 
 		private static GUIStyle _toolbarSearchButton;
 		public static GUIStyle toolbarSearchCancelButton{
-			get {return _toolbarSearchButton?? (_toolbarSearchButton = (GUIStyle)"ToolbarSeachCancelButton"); }
+			get {return _toolbarSearchButton?? (_toolbarSearchButton = new GUIStyle( (GUIStyle)"ToolbarSeachCancelButton") ); }
 		}
 
 		private static GUIStyle _shadowedBackground;
 		public static GUIStyle shadowedBackground{
-			get {return _shadowedBackground?? (_shadowedBackground = (GUIStyle)"CurveEditorBackground"); }
+			get {return _shadowedBackground?? (_shadowedBackground = new GUIStyle( (GUIStyle)"CurveEditorBackground") ); }
 		}		
 
 		///----------------------------------------------------------------------------------------------

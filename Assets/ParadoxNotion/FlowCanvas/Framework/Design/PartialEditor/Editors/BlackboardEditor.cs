@@ -266,7 +266,7 @@ namespace NodeCanvas.Editor{
 				}
 			}
 
-			foreach (var type in UserTypePrefs.GetPreferedTypesList(typeof(object))){
+			foreach (var type in TypePrefs.GetPreferedTypesList(typeof(object))){
 				menu = EditorUtils.GetStaticFieldSelectionMenu(type, typeof(object), AddBoundField, menu, "Bound (Static)");
 				menu = EditorUtils.GetStaticPropertySelectionMenu(type, typeof(object), AddBoundProp, false, false, menu, "Bound (Static)");
 			}
@@ -298,11 +298,16 @@ namespace NodeCanvas.Editor{
 				}
 			}
 
-			foreach (var type in UserTypePrefs.GetPreferedTypesList() ){
+			foreach (var type in TypePrefs.GetPreferedTypesList() ){
 				menu = EditorUtils.GetStaticFieldSelectionMenu(type, data.varType, SelectField, menu, "Bind (Static)");
 				menu = EditorUtils.GetStaticPropertySelectionMenu(type, data.varType, SelectProp, false, false, menu, "Bind (Static)");
 			}
 
+			menu.AddItem(new GUIContent("Duplicate"), false, ()=>
+			{
+				var dup = bb.AddVariable(data.name + '.', data.varType);
+				dup.value = data.value;
+			});
 
 			menu.AddItem(new GUIContent("Protected"), data.isProtected, ()=>{ data.isProtected = !data.isProtected; });
 
@@ -343,7 +348,7 @@ namespace NodeCanvas.Editor{
 
 		    //Check Type second
 			if (t == typeof(System.Type)){
-				return EditorUtils.Popup<System.Type>(string.Empty, (System.Type)o, UserTypePrefs.GetPreferedTypesList(true), layoutOptions );
+				return EditorUtils.Popup<System.Type>(string.Empty, (System.Type)o, TypePrefs.GetPreferedTypesList(true), layoutOptions );
 			}
 
 			t = o != null? o.GetType() : t;
@@ -386,17 +391,17 @@ namespace NodeCanvas.Editor{
 			}
 
 			if (t == typeof(float)){
-				GUI.backgroundColor = UserTypePrefs.GetTypeColor(t);
+				GUI.backgroundColor = TypePrefs.GetTypeColor(t);
 				return EditorGUILayout.FloatField((float)o, layoutOptions);
 			}
 
 			if (t == typeof(int)){
-				GUI.backgroundColor = UserTypePrefs.GetTypeColor(t);
+				GUI.backgroundColor = TypePrefs.GetTypeColor(t);
 				return EditorGUILayout.IntField((int)o, layoutOptions);
 			}
 
 			if (t == typeof(string)){
-				GUI.backgroundColor = UserTypePrefs.GetTypeColor(t);
+				GUI.backgroundColor = TypePrefs.GetTypeColor(t);
 				return EditorGUILayout.TextField((string)o, layoutOptions);
 			}
 

@@ -88,7 +88,7 @@ namespace ParadoxNotion.Design{
 			var listTypes = new Dictionary<Type, string>();
 			var dictTypes = new Dictionary<Type, string>();
 
-			foreach (var t in UserTypePrefs.GetPreferedTypesList(constrainType, true)){
+			foreach (var t in TypePrefs.GetPreferedTypesList(constrainType, true)){
 				var nsString = t.NamespaceToPath() + "/";
 				var finalType = isGeneric? genericDefinition.MakeGenericType(t) : t;
 				var finalString = nsString + finalType.FriendlyName();
@@ -108,15 +108,15 @@ namespace ParadoxNotion.Design{
 			}
 
 			foreach(var tPair in listTypes){
-				menu.AddItem(new GUIContent(subCategory + UserTypePrefs.LIST_MENU_STRING + tPair.Value + tPair.Key.FriendlyName()), false, Selected, tPair.Key);
+				menu.AddItem(new GUIContent(subCategory + TypePrefs.LIST_MENU_STRING + tPair.Value + tPair.Key.FriendlyName()), false, Selected, tPair.Key);
 			}
 
 			foreach(var tPair in dictTypes){
-				menu.AddItem(new GUIContent(subCategory + UserTypePrefs.DICT_MENU_STRING + tPair.Value + tPair.Key.FriendlyName()), false, Selected, tPair.Key);
+				menu.AddItem(new GUIContent(subCategory + TypePrefs.DICT_MENU_STRING + tPair.Value + tPair.Key.FriendlyName()), false, Selected, tPair.Key);
 			}
 
 			if (showAddTypeOption){
-				menu.AddItem(new GUIContent(subCategory + "Add Type..."), false, ()=>{ PreferedTypesEditorWindow.ShowWindow(); });
+				menu.AddItem(new GUIContent(subCategory + "Add Type..."), false, ()=>{ TypePrefsEditorWindow.ShowWindow(); });
 			}
 
 			if (menu.GetItemCount() == 0){

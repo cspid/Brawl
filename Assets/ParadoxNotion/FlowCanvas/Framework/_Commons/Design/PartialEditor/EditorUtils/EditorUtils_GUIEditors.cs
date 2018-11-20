@@ -14,18 +14,7 @@ namespace ParadoxNotion.Design{
     /// Specific Editor GUIs
 	partial class EditorUtils {
 
-        private static Texture2D _tex;
-        private static Texture2D tex
-        {
-            get
-            {
-                if (_tex == null){
-                    _tex = new Texture2D(1, 1);
-                    _tex.hideFlags = HideFlags.HideAndDontSave;
-                }
-                return _tex;
-            }
-        }
+        private static Texture2D whiteTexture { get {return Texture2D.whiteTexture;} }
 
 		///A cool label :-P (for headers)
 		public static void CoolLabel(string text){
@@ -49,7 +38,7 @@ namespace ParadoxNotion.Design{
 			var lastRect = GUILayoutUtility.GetLastRect();
 			GUILayout.Space(7);
 			GUI.color = new Color(0, 0, 0, 0.3f);
-			GUI.DrawTexture(Rect.MinMaxRect(lastRect.xMin, lastRect.yMax + 4, lastRect.xMax, lastRect.yMax + 6), tex);
+			GUI.DrawTexture(Rect.MinMaxRect(lastRect.xMin, lastRect.yMax + 4, lastRect.xMax, lastRect.yMax + 6), whiteTexture);
 			GUI.color = Color.white;
 		}
 
@@ -58,9 +47,9 @@ namespace ParadoxNotion.Design{
 			var lastRect = GUILayoutUtility.GetLastRect();
 			GUILayout.Space(14);
 			GUI.color = new Color(0, 0, 0, 0.3f);
-			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 4), tex);
-			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 1), tex);
-			GUI.DrawTexture(new Rect(0, lastRect.yMax + 9, Screen.width, 1), tex);
+			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 4), whiteTexture);
+			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 1), whiteTexture);
+			GUI.DrawTexture(new Rect(0, lastRect.yMax + 9, Screen.width, 1), whiteTexture);
 			GUI.color = Color.white;
 		}
 
@@ -69,8 +58,8 @@ namespace ParadoxNotion.Design{
 			var lastRect= GUILayoutUtility.GetLastRect();
 			GUILayout.Space(8);
 			GUI.color = new Color(0, 0, 0, 0.4f);
-			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 4), tex);
-			GUI.DrawTexture(new Rect(0, lastRect.yMax + 4, Screen.width, 1), tex);
+			GUI.DrawTexture(new Rect(0, lastRect.yMax + 6, Screen.width, 4), whiteTexture);
+			GUI.DrawTexture(new Rect(0, lastRect.yMax + 4, Screen.width, 1), whiteTexture);
 			GUI.color = Color.white;
 		}
 
@@ -103,37 +92,10 @@ namespace ParadoxNotion.Design{
 
 		///Editor for LayerMask
 		public static LayerMask LayerMaskField(GUIContent content, LayerMask layerMask, params GUILayoutOption[] layoutOptions){
-
             LayerMask tempMask = EditorGUILayout.MaskField(content, UnityEditorInternal.InternalEditorUtility.LayerMaskToConcatenatedLayersMask(layerMask), UnityEditorInternal.InternalEditorUtility.layers, layoutOptions);
             layerMask = UnityEditorInternal.InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
             return layerMask;
-
-			// var layers = UnityEditorInternal.InternalEditorUtility.layers;
-		    // var layerNumbers = new List<int>();
-		 
-		    // for (var i = 0; i < layers.Length; i++){
-			// 	layerNumbers.Add(LayerMask.NameToLayer(layers[i]));
-			// }
-		 
-		    // var maskWithoutEmpty = 0;
-		    // for (var i = 0; i < layerNumbers.Count; i++) {
-		    // 	if (((1 << layerNumbers[i]) & layerMask.value) > 0){
-		    //         maskWithoutEmpty |= (1 << i);
-		    //     }
-		    // }
-			
-			// maskWithoutEmpty = UnityEditor.EditorGUILayout.MaskField(content, maskWithoutEmpty, layers, layoutOptions);
-
-		    // var mask = 0;
-		    // for (var i = 0; i < layerNumbers.Count; i++){
-		    //     if ((maskWithoutEmpty & (1 << i)) > 0){
-		    //         mask |= (1 << layerNumbers[i]);
-		    //     }
-		    // }
-		    // layerMask.value = mask;
-		    // return layerMask;
 		}
-
 
         ///Stores fold states
 		private static readonly Dictionary<object, bool> registeredEditorFoldouts = new Dictionary<object, bool>();

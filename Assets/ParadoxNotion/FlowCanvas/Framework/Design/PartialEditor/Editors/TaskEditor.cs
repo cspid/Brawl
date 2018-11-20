@@ -7,6 +7,7 @@ using UnityEditor;
 using ParadoxNotion;
 using ParadoxNotion.Design;
 using NodeCanvas.Framework;
+using NodeCanvas.Framework.Internal;
 using System.Linq;
 
 namespace NodeCanvas.Editor {
@@ -14,13 +15,13 @@ namespace NodeCanvas.Editor {
     public class TaskEditor : EditorObjectWrapper<Task> {
 
 		private bool isUnfolded = true;
-		private EditorPropertyWrapper<TaskAgent> overrideAgentProp;
+		private EditorPropertyWrapper<TaskAgentParameter> overrideAgentProp;
 		private EditorMethodWrapper onTaskInspectorGUI;
 
 		private Task task{get{return target;}}
 
 		protected override void OnInit(){
-			overrideAgentProp = CreatePropertyWrapper<TaskAgent>("overrideAgent");
+			overrideAgentProp = CreatePropertyWrapper<TaskAgentParameter>("overrideAgent");
 			onTaskInspectorGUI = CreateMethodWrapper("OnTaskInspectorGUI");
 		}
 
@@ -168,7 +169,7 @@ namespace NodeCanvas.Editor {
 
 			//make sure TaskAgent is not null in case task defines an AgentType
 			if (task.agentIsOverride && overrideAgentProp.value == null){
-				overrideAgentProp.value = new TaskAgent();
+				overrideAgentProp.value = new TaskAgentParameter();
 			}
 
 			UndoManager.CheckUndo(task.ownerSystem.contextObject, "Task Inspector");
@@ -179,7 +180,7 @@ namespace NodeCanvas.Editor {
 
 			if (!showTitlebar || ShowTitlebar(callback) == true){
 
-				if (NCPrefs.showNodeInfo && !string.IsNullOrEmpty(task.description)){
+				if (Prefs.showNodeInfo && !string.IsNullOrEmpty(task.description)){
 					EditorGUILayout.HelpBox(task.description, MessageType.None);
 				}
 
@@ -287,7 +288,7 @@ namespace NodeCanvas.Editor {
 				return;
 			}
 
-			TaskAgent taskAgent = overrideAgentProp.value;
+			TaskAgentParameter taskAgent = overrideAgentProp.value;
 
 			if (Application.isPlaying && task.agentIsOverride && taskAgent.value == null){
 				GUI.color = Colors.lightRed;
@@ -352,7 +353,7 @@ namespace NodeCanvas.Editor {
 			} else {
 
 				GUILayout.BeginHorizontal();
-				var icon = UserTypePrefs.GetTypeIcon(task.agentType);
+				var icon = TypePrefs.GetTypeIcon(task.agentType);
 				var label = string.Format("Use Self ({0})", infoString);
 				var content = new GUIContent(label, icon);
 				GUILayout.Label(content, GUILayout.Height(16));

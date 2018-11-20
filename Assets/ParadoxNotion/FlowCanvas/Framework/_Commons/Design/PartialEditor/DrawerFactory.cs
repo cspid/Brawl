@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace ParadoxNotion.Design {
 
     ///Provides object and attribute property drawers
-    public static class DrawerFactory {
+    public static class PropertyDrawerFactory {
 
 		//Type to drawer instance map
 		private static Dictionary<Type, IObjectDrawer> objectDrawers = new Dictionary<Type, IObjectDrawer>();
@@ -101,7 +101,7 @@ namespace ParadoxNotion.Design {
 			attributeIndex++;
 			if (attributes != null && attributeIndex < attributes.Length){
 				var att = attributes[attributeIndex];
-				var drawer = DrawerFactory.GetAttributeDrawer(att);
+				var drawer = PropertyDrawerFactory.GetAttributeDrawer(att);
 				return drawer.DrawGUI(this, content, instance, fieldInfo, context, att);
 			}
 			return OnGUI(content, instance);
