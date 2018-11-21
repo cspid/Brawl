@@ -6,7 +6,7 @@ public class HealthSubtractor : MonoBehaviour
 {
 
 	public int punchDamage = 15;
-	bool canDamage = true;
+	public bool canDamage = true;
 	HealthManager thisManager;
 	public float delayTime = 1.0f;
 	float startDelayTime = 1.0f;
@@ -18,9 +18,12 @@ public class HealthSubtractor : MonoBehaviour
 		thisManager = GetComponentInParent<HealthManager>();
     }
 
-	 void Update()
+	void Update()
 	{
-		if (canDamage == false) DamageWait();
+        //if (canDamage == false)
+      //  {
+      //      DamageWait();
+      //  }
 	}
 
 	void OnCollisionEnter(Collision collision)
@@ -34,9 +37,10 @@ public class HealthSubtractor : MonoBehaviour
 				if (collision.gameObject.transform.GetComponentInParent<HealthManager>() != thisManager)
 				{
 					collision.gameObject.transform.GetComponentInParent<HealthManager>().LoseHealth(punchDamage);
-					canDamage = false;   //wait a second so we dont trigger multiple instances
+                    //canDamage = false;   //wait a second so we dont trigger multiple instances
+                    canDamage = false;
 
-				}
+                }
 			}
 		}
 	}
