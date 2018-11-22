@@ -1,10 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class StrafeAnimController : MonoBehaviour {
 
 	Animator animator;
+	public NavMeshAgent myAgent;
 	Rigidbody rb;
 	public float animSpeed = 1.5f;
 	// Use this for initialization
@@ -16,9 +18,16 @@ public class StrafeAnimController : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		animator.speed = animSpeed;
-
-		animator.SetFloat("Forward", transform.InverseTransformDirection(rb.velocity).z);
-		animator.SetFloat("Right", transform.InverseTransformDirection(rb.velocity).x);
+		if(rb.isKinematic == false)
+		{
+			animator.SetFloat("Forward", transform.InverseTransformDirection(rb.velocity).z);
+            animator.SetFloat("Right", transform.InverseTransformDirection(rb.velocity).x);
+		}
+		else if (myAgent != null)
+		{
+			animator.SetFloat("Forward", transform.InverseTransformDirection(myAgent.velocity).z);
+			animator.SetFloat("Right", transform.InverseTransformDirection(myAgent.velocity).x);
+		}
 		//print(rb.velocity.x);
 
 
