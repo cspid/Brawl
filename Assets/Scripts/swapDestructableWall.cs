@@ -13,6 +13,7 @@ public class swapDestructableWall : MonoBehaviour
 		if (isBroken == false)
 			if (other.gameObject.layer == 9)
 			{
+                this.GetComponent<Collider>().isTrigger = true;
 				for (int i = 0; i < transform.childCount; i++)
 				{
 					transform.GetChild(i).GetComponent<Rigidbody>().isKinematic = false;
