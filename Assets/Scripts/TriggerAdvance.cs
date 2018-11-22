@@ -30,7 +30,13 @@ public class TriggerAdvance : MonoBehaviour
 	bool isAdvancing = false;
 	public UnityEvent NextWave;
 	public Transform cam;
+	public GameObject UIAdvance;
 	//bool moveCam;
+
+	void OnEnable()
+	{
+	    	
+	}
 
 	void Start()
 	{
